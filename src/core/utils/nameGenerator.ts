@@ -39,10 +39,10 @@ export class NameGenerator {
     for (let i = 0; i < length; i++) {
       if (i === 0) {
         // 첫 글자는 자음 또는 모음
-        name += this.rng.choice(this.consonants + this.vowels).toUpperCase();
+        name += this.rng.choice([...this.consonants, ...this.vowels]).toUpperCase();
       } else {
         // 나머지는 자음 또는 모음
-        name += this.rng.choice(this.consonants + this.vowels);
+        name += this.rng.choice([...this.consonants, ...this.vowels]);
       }
     }
     
@@ -56,9 +56,9 @@ export class NameGenerator {
     
     for (let i = 0; i < length; i++) {
       if (i === 0) {
-        name += this.rng.choice(this.consonants + this.vowels).toUpperCase();
+        name += this.rng.choice([...this.consonants, ...this.vowels]).toUpperCase();
       } else {
-        name += this.rng.choice(this.consonants + this.vowels + this.numbers);
+        name += this.rng.choice([...this.consonants, ...this.vowels, ...this.numbers]);
       }
     }
     
@@ -72,9 +72,9 @@ export class NameGenerator {
     
     for (let i = 0; i < length; i++) {
       if (i === 0) {
-        name += this.rng.choice(this.consonants + this.vowels).toUpperCase();
+        name += this.rng.choice([...this.consonants, ...this.vowels]).toUpperCase();
       } else {
-        name += this.rng.choice(this.consonants + this.vowels + this.specialChars);
+        name += this.rng.choice([...this.consonants, ...this.vowels, ...this.specialChars]);
       }
     }
     
@@ -84,10 +84,10 @@ export class NameGenerator {
   // 혼합형 이름
   private generateMixedName(): string {
     const patterns = [
-      () => `${this.rng.choice(this.consonants).toUpperCase()}${this.rng.choice(this.vowels)}${this.rng.choice(this.numbers)}${this.rng.choice(this.specialChars)}`,
-      () => `${this.rng.choice(this.vowels).toUpperCase()}${this.rng.choice(this.consonants)}${this.rng.choice(this.numbers)}`,
-      () => `${this.rng.choice(this.consonants).toUpperCase()}${this.rng.choice(this.vowels)}${this.rng.choice(this.specialChars)}${this.rng.choice(this.numbers)}`,
-      () => `${this.rng.choice(this.specialChars)}${this.rng.choice(this.consonants).toUpperCase()}${this.rng.choice(this.vowels)}${this.rng.choice(this.numbers)}`
+      () => `${this.rng.choice([...this.consonants]).toUpperCase()}${this.rng.choice([...this.vowels])}${this.rng.choice([...this.numbers])}${this.rng.choice([...this.specialChars])}`,
+      () => `${this.rng.choice([...this.vowels]).toUpperCase()}${this.rng.choice([...this.consonants])}${this.rng.choice([...this.numbers])}`,
+      () => `${this.rng.choice([...this.consonants]).toUpperCase()}${this.rng.choice([...this.vowels])}${this.rng.choice([...this.specialChars])}${this.rng.choice([...this.numbers])}`,
+      () => `${this.rng.choice([...this.specialChars])}${this.rng.choice([...this.consonants]).toUpperCase()}${this.rng.choice([...this.vowels])}${this.rng.choice([...this.numbers])}`
     ];
     
     return patterns[this.rng.range(0, patterns.length)]();

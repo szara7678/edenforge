@@ -105,7 +105,20 @@ export class CombatSystem {
 
     // 사망 체크
     if (defender.hp <= 0) {
-      this.logger.error('combat', `${defender.name}이(가) 전투에서 사망했습니다.`, defender.id, defender.name);
+      const deathInfo = {
+        killer: attacker.name,
+        killerId: attacker.id,
+        weapon: this.getBestWeapon(attacker)?.name || '맨손',
+        damage: finalDamage,
+        isCritical,
+        defenderStats: {
+          hp: defender.hp,
+          combat: defender.skills.combat,
+          defense: this.getBestArmor(defender)?.defense || 0
+        }
+      };
+      
+      this.logger.error('combat', `${defender.name}이(가) ${attacker.name}의 공격으로 전투에서 사망했습니다.`, defender.id, defender.name, deathInfo);
       
       return {
         winner: attacker,
@@ -149,11 +162,10 @@ export class CombatSystem {
   private getBestArmor(entity: Entity): Armor | null {
     const armors = entity.inventory.items;
     let bestArmor: Armor | null = null;
-    let bestDefense = 0;
+
 
     if (armors['방어구'] && armors['방어구'] > 0) {
       bestArmor = { id: 'armor', name: '방어구', defense: 8, durability: 100, maxDurability: 100 };
-      bestDefense = 8;
     }
 
     return bestArmor;
@@ -190,12 +202,26 @@ export class CombatSystem {
 
     // 패자 처리
     if (loser.hp <= 0) {
-      // 사망 처리
-      this.logger.error('combat', `${loser.name}이(가) 전투에서 사망했습니다.`, loser.id, loser.name);
+      // 사망 처리 (이미 executeCombat에서 처리됨)
+      const injuryInfo = {
+        damage: result.damage,
+        finalHp: loser.hp,
+        moraleLoss: 20,
+        experience: result.experience
+      };
+      
+      this.logger.error('combat', `${loser.name}이(가) 전투에서 치명상을 입고 사망했습니다.`, loser.id, loser.name, injuryInfo);
     } else {
       // 부상 처리
       loser.morale = Math.max(0, loser.morale - 20);
-      this.logger.warning('combat', `${loser.name}이(가) 전투에서 부상을 입었습니다.`, loser.id, loser.name);
+      const injuryInfo = {
+        damage: result.damage,
+        remainingHp: loser.hp,
+        moraleLoss: 20,
+        experience: result.experience
+      };
+      
+      this.logger.warning('combat', `${loser.name}이(가) 전투에서 부상을 입었습니다. (남은 HP: ${loser.hp.toFixed(1)})`, loser.id, loser.name, injuryInfo);
     }
   }
 } 

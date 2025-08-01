@@ -101,6 +101,35 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({ worldState }) => {
     ];
   }, [worldState.animals, worldState.plants, worldState.pulses, worldState.biomes]);
 
+  // 감정 이름 변환 함수
+  const getEmotionName = (emotionKey: string): string => {
+    const emotionNames: Record<string, string> = {
+      happiness: '행복',
+      fear: '공포',
+      anger: '분노',
+      curiosity: '호기심',
+      satisfaction: '만족',
+      stress: '스트레스',
+      excitement: '흥미',
+      sadness: '슬픔',
+      anxiety: '불안',
+      joy: '기쁨',
+      frustration: '좌절',
+      pride: '자부심',
+      loneliness: '외로움',
+      hope: '희망',
+      despair: '절망',
+      calmness: '평온',
+      irritation: '짜증',
+      gratitude: '감사',
+      envy: '질투',
+      confidence: '자신감',
+      confusion: '혼란',
+      determination: '의지'
+    };
+    return emotionNames[emotionKey] || emotionKey;
+  };
+
   // 감정 분포 데이터 (확장된 감정 상태)
   const emotionsData = useMemo(() => {
     const aliveEntities = worldState.entities.filter(e => e.hp > 0);
@@ -183,35 +212,6 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({ worldState }) => {
       }));
   }, [worldState.entities]);
 
-  // 감정 이름 변환 함수
-  const getEmotionName = (emotionKey: string): string => {
-    const emotionNames: Record<string, string> = {
-      happiness: '행복',
-      fear: '공포',
-      anger: '분노',
-      curiosity: '호기심',
-      satisfaction: '만족',
-      stress: '스트레스',
-      excitement: '흥미',
-      sadness: '슬픔',
-      anxiety: '불안',
-      joy: '기쁨',
-      frustration: '좌절',
-      pride: '자부심',
-      loneliness: '외로움',
-      hope: '희망',
-      despair: '절망',
-      calmness: '평온',
-      irritation: '짜증',
-      gratitude: '감사',
-      envy: '질투',
-      confidence: '자신감',
-      confusion: '혼란',
-      determination: '의지'
-    };
-    return emotionNames[emotionKey] || emotionKey;
-  };
-
   const chartTypes = [
     { id: 'population', name: '인구', icon: '👥' },
     { id: 'skills', name: '스킬', icon: '⚔️' },
@@ -240,18 +240,20 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({ worldState }) => {
                 onChange={(e) => setTimeRange(Number(e.target.value))}
                 style={{
                   padding: '4px 8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid #333',
+                  backgroundColor: '#2a2a2a',
+                  border: '1px solid #4ecdc4',
                   borderRadius: '4px',
                   color: 'white',
-                  fontSize: '11px'
+                  fontSize: '11px',
+                  outline: 'none',
+                  cursor: 'pointer'
                 }}
               >
-                <option value={50}>50 틱</option>
-                <option value={100}>100 틱</option>
-                <option value={200}>200 틱</option>
-                <option value={500}>500 틱</option>
-                <option value={1000}>1000 틱</option>
+                <option value={50} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>50 틱</option>
+                <option value={100} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>100 틱</option>
+                <option value={200} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>200 틱</option>
+                <option value={500} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>500 틱</option>
+                <option value={1000} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>1000 틱</option>
               </select>
               <span style={{ opacity: 0.7, fontSize: '10px' }}>
                 (현재 {timeRange}개 데이터 포인트)

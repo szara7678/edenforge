@@ -170,7 +170,23 @@ export class EcosystemSystem {
     };
 
     this.animals.push(animal);
-    this.logger.info('ecosystem', `${animal.name} ${species}이(가) 생성되었습니다.`, animal.id, animal.name);
+    
+    // 동물 생성 로그
+    const creationInfo = {
+      species: animal.species,
+      position: animal.pos,
+      stats: {
+        size: animal.size,
+        speed: animal.speed,
+        senses: animal.senses,
+        threat: animal.threat,
+        pulseRadius: animal.pulseRadius
+      },
+      baseStats: animal.stats,
+      skills: animal.skills
+    };
+    
+    this.logger.success('ecosystem', `${animal.name} ${species}이(가) 생성되었습니다.`, animal.id, animal.name, creationInfo);
     
     return animal;
   }
@@ -195,6 +211,24 @@ export class EcosystemSystem {
     };
 
     this.plants.push(plant);
+    
+    // 식물 생성 로그
+    const creationInfo = {
+      species: plant.species,
+      position: plant.pos,
+      stats: {
+        growth: plant.growth,
+        resilience: plant.resilience,
+        seedDispersion: plant.seedDispersion,
+        size: plant.size,
+        yield: plant.yield
+      },
+      hp: plant.hp,
+      maxHp: plant.maxHp
+    };
+    
+    this.logger.success('ecosystem', `${plant.name} ${plant.species}이(가) 생성되었습니다.`, plant.id, plant.name, creationInfo);
+    
     return plant;
   }
 
@@ -313,7 +347,26 @@ export class EcosystemSystem {
 
       // 사망 체크
       if (animal.hp <= 0 || animal.hunger >= 100 || animal.age >= 100) {
-        this.logger.warning('ecosystem', `${animal.name} ${animal.species}이(가) 사망했습니다.`, animal.id, animal.name);
+        let cause = '';
+        if (animal.hp <= 0) cause = 'HP 부족';
+        else if (animal.hunger >= 100) cause = '극심한 배고픔';
+        else if (animal.age >= 100) cause = '노화';
+        
+        const deathInfo = {
+          cause,
+          species: animal.species,
+          age: animal.age,
+          finalStats: {
+            hp: animal.hp,
+            stamina: animal.stamina,
+            hunger: animal.hunger,
+            fear: animal.fear,
+            threat: animal.threat
+          },
+          position: animal.pos
+        };
+        
+        this.logger.warning('ecosystem', `${animal.name} ${animal.species}이(가) ${cause}로 사망했습니다.`, animal.id, animal.name, deathInfo);
         continue;
       }
 
@@ -348,7 +401,27 @@ export class EcosystemSystem {
       // 사망 체크
       if (plant.age >= 200 || plant.hp <= 0) {
         plant.isDead = true;
-        this.logger.warning('ecosystem', `${plant.species}이(가) 죽었습니다.`, plant.id, plant.species);
+        
+        let cause = '';
+        if (plant.hp <= 0) cause = 'HP 부족';
+        else if (plant.age >= 200) cause = '노화';
+        
+        const deathInfo = {
+          cause,
+          species: plant.species,
+          age: plant.age,
+          growth: plant.growth,
+          finalStats: {
+            hp: plant.hp,
+            size: plant.size,
+            yield: plant.yield,
+            resilience: plant.resilience
+          },
+          position: plant.pos,
+          wasMature: plant.isMature
+        };
+        
+        this.logger.warning('ecosystem', `${plant.species}이(가) ${cause}로 죽었습니다.`, plant.id, plant.species, deathInfo);
       }
     }
 
@@ -826,12 +899,7 @@ export class EcosystemSystem {
     return this.animals;
   }
 
-  // 인간 엔티티 목록 조회 (월드에서 가져옴)
-  private getHumanEntities(): Entity[] {
-    // 이 메서드는 월드 시스템에서 호출될 때 엔티티 목록을 받아야 함
-    // 임시로 빈 배열 반환
-    return [];
-  }
+
 
   // 식물 목록 조회
   getPlants(): Plant[] {

@@ -120,7 +120,6 @@ export const TabManager: React.FC<TabManagerProps> = ({ gameState }) => {
             <FactionPanel 
               factions={gameState.factions}
               factionRelations={gameState.factionRelations}
-              entities={gameState.entities}
               onFactionSelect={(faction: Faction) => {
                 openModal(faction, 'faction');
               }}
@@ -181,7 +180,11 @@ export const TabManager: React.FC<TabManagerProps> = ({ gameState }) => {
   return (
     <>
       {/* 패널들 렌더링 */}
-      {Object.keys(panels).map(tabId => renderPanel(tabId))}
+      {Object.keys(panels).map(tabId => (
+        <div key={tabId}>
+          {renderPanel(tabId)}
+        </div>
+      ))}
 
       {/* 상세 모달 */}
       <DetailModal

@@ -1,8 +1,10 @@
 import { useRef, useEffect, useState } from 'react';
 import { WorldState } from '../types';
+import { BubbleFilters } from './BubbleFilterPanel';
 
 interface CanvasLayerProps {
   worldState: WorldState;
+  bubbleFilters?: BubbleFilters;
 }
 
 interface MapView {
@@ -11,7 +13,7 @@ interface MapView {
   scale: number;
 }
 
-const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState }) => {
+const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState, bubbleFilters }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mapView, setMapView] = useState<MapView>({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
@@ -237,9 +239,34 @@ const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState }) => {
       ctx.globalAlpha = 1;
     }
 
-    // 감정 말풍선 렌더링 (성능 최적화)
-    if (worldState.emotionBubbles.length > 0) {
-      for (const bubble of worldState.emotionBubbles.slice(-8)) { // 최대 8개만 렌더링
+    // 감정 말풍선 렌더링 (필터링 적용)
+    if (worldState.emotionBubbles.length > 0 && bubbleFilters) {
+      const filteredBubbles = worldState.emotionBubbles.filter(bubble => {
+        const entity = worldState.entities.find(e => e.id === bubble.entityId);
+        if (!entity) return false;
+
+        // 엔티티 타입 필터링
+        if (entity.species === 'human' && !bubbleFilters.showEntityBubbles) return false;
+        if (entity.species !== 'human' && !bubbleFilters.showAnimalBubbles) return false;
+
+        // 말풍선 타입 필터링
+        if (bubble.type === 'emotion' && !bubbleFilters.showEmotions) return false;
+        if (bubble.type === 'action' && !bubbleFilters.showActions) return false;
+        if (bubble.type === 'thought' && !bubbleFilters.showThoughts) return false;
+        if (bubble.type === 'speech' && !bubbleFilters.showSpeech) return false;
+
+        // 선택된 엔티티 필터링
+        if (bubbleFilters.selectedEntities.length > 0 && 
+            !bubbleFilters.selectedEntities.includes(entity.id)) return false;
+
+        // 선택된 파벌 필터링
+        if (bubbleFilters.selectedFactions.length > 0 && entity.factionId &&
+            !bubbleFilters.selectedFactions.includes(entity.factionId)) return false;
+
+        return true;
+      });
+
+      for (const bubble of filteredBubbles.slice(-8)) { // 최대 8개만 렌더링
         const entity = worldState.entities.find(e => e.id === bubble.entityId);
         if (!entity) continue;
 

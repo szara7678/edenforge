@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Entity } from '../types';
 import { GeneticTrait } from '../core/genetics';
-import { LearningExperience, TeachingSession } from '../core/learning';
+
 
 interface GeneticsPanelProps {
   entities: Entity[];
@@ -57,19 +57,7 @@ export const GeneticsPanel: React.FC<GeneticsPanelProps> = ({
     }
   };
 
-  const getSkillName = (skillKey: string): string => {
-    const skillNames: Record<string, string> = {
-      gather: '수집',
-      analyze: '분석',
-      craft: '제작',
-      build: '건축',
-      cook: '요리',
-      combat: '전투',
-      trade: '거래',
-      lead: '지도력'
-    };
-    return skillNames[skillKey] || skillKey;
-  };
+
 
   // 가족 트리 렌더링
   const renderFamilyTree = (entity: Entity) => {

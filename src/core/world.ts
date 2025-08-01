@@ -78,7 +78,7 @@ export class World {
     for (const entity of this.state.entities) {
       this.updateEntity(entity);
       
-      // 사망 체크
+      // 사망 체크 (EntitySystem에서 이미 처리됨)
       if (entity.hp <= 0 || entity.hunger >= 100 || entity.age >= 100) {
         deadEntities.push(entity.id);
       }
@@ -86,10 +86,6 @@ export class World {
 
     // 사망한 엔티티 제거
     for (const deadId of deadEntities) {
-      const deadEntity = this.findEntity(deadId);
-      if (deadEntity) {
-        this.logger.info('entity', `${deadEntity.name}이(가) 사망했습니다.`, deadEntity.id, deadEntity.name);
-      }
       this.removeEntity(deadId);
     }
 
@@ -209,6 +205,19 @@ export class World {
     };
 
     this.state.entities.push(entity);
+    
+    // 엔티티 생성 로그
+    const creationInfo = {
+      species: entity.species,
+      position: entity.pos,
+      stats: entity.stats,
+      skills: entity.skills,
+      genes: entity.genes,
+      faction: entity.factionId || '무소속'
+    };
+    
+    this.logger.success('entity', `${entity.name}이(가) 탄생했습니다. (종족: ${entity.species})`, entity.id, entity.name, creationInfo);
+    
     return entity;
   }
 
@@ -256,6 +265,26 @@ export class World {
 
   // 엔티티 제거
   removeEntity(entityId: string): void {
+    const entity = this.findEntity(entityId);
+    if (entity) {
+      // 엔티티 제거 로그
+      const removalInfo = {
+        species: entity.species,
+        age: entity.age,
+        cause: '사망',
+        lastPosition: entity.pos,
+        faction: entity.factionId || '무소속',
+        finalStats: {
+          hp: entity.hp,
+          stamina: entity.stamina,
+          hunger: entity.hunger,
+          morale: entity.morale
+        }
+      };
+      
+      this.logger.warning('entity', `${entity.name}이(가) 시뮬레이션에서 제거되었습니다.`, entity.id, entity.name, removalInfo);
+    }
+    
     this.state.entities = this.state.entities.filter(e => e.id !== entityId);
   }
 

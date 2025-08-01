@@ -282,7 +282,7 @@ export class GeneticsSystem {
   }
 
   // 자식 이름 생성
-  private generateChildName(parent1: Entity, parent2: Entity): string {
+  private generateChildName(_parent1: Entity, _parent2: Entity): string {
     const names = ['아린', '벨라', '카이', '루나', '토르', '프레이', '마야', '제이크', '소피', '리오', '노아', '에바', '리암', '올리비아'];
     return this.rng.pick(names);
   }

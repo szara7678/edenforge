@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { Faction, FactionRelation, Entity } from '../types';
+import { Faction, FactionRelation } from '../types';
 
 interface FactionPanelProps {
   factions: Faction[];
   factionRelations: FactionRelation[];
-  entities: Entity[];
   onFactionSelect?: (faction: Faction) => void;
 }
 
 export const FactionPanel: React.FC<FactionPanelProps> = ({ 
   factions, 
   factionRelations, 
-  entities,
   onFactionSelect 
 }) => {
   const [selectedFaction, setSelectedFaction] = useState<Faction | null>(null);

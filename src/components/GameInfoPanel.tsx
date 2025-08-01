@@ -59,20 +59,22 @@ export const GameInfoPanel: React.FC<GameInfoPanelProps> = ({
             value={speed} 
             onChange={(e) => onChangeSpeed(Number(e.target.value))}
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: '#2a2a2a',
               color: 'white',
-              border: '1px solid #333',
+              border: '1px solid #4ecdc4',
               padding: '4px 6px',
               borderRadius: '3px',
-              fontSize: '10px'
+              fontSize: '10px',
+              outline: 'none',
+              cursor: 'pointer'
             }}
           >
-            <option value={0.1}>0.1x</option>
-            <option value={0.2}>0.2x</option>
-            <option value={0.5}>0.5x</option>
-            <option value={1}>1x</option>
-            <option value={2}>2x</option>
-            <option value={4}>4x</option>
+            <option value={0.1} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>0.1x</option>
+            <option value={0.2} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>0.2x</option>
+            <option value={0.5} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>0.5x</option>
+            <option value={1} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>1x</option>
+            <option value={2} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>2x</option>
+            <option value={4} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>4x</option>
           </select>
         </div>
       </div>

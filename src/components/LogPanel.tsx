@@ -124,11 +124,12 @@ const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
             style={{
               width: '100%',
               padding: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid #333',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #4ecdc4',
               borderRadius: '4px',
               color: 'white',
-              fontSize: '11px'
+              fontSize: '11px',
+              outline: 'none'
             }}
           />
         </div>

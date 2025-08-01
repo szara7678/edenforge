@@ -192,11 +192,12 @@ export const BubbleFilterPanel: React.FC<BubbleFilterPanelProps> = ({
             style={{
               width: '100%',
               padding: '4px 6px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid #333',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #4ecdc4',
               borderRadius: '3px',
               color: 'white',
-              fontSize: '10px'
+              fontSize: '10px',
+              outline: 'none'
             }}
           />
         </div>
@@ -251,11 +252,12 @@ export const BubbleFilterPanel: React.FC<BubbleFilterPanelProps> = ({
             style={{
               width: '100%',
               padding: '4px 6px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid #333',
+              backgroundColor: '#2a2a2a',
+              border: '1px solid #4ecdc4',
               borderRadius: '3px',
               color: 'white',
-              fontSize: '10px'
+              fontSize: '10px',
+              outline: 'none'
             }}
           />
         </div>

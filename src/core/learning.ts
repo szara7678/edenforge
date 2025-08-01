@@ -129,7 +129,7 @@ export class LearningSystem {
   }
 
   // 학습 경험 기록
-  private recordLearningExperience(entity: Entity, action: string, gain: number, success: boolean): void {
+  private recordLearningExperience(entity: Entity, action: string, gain: number, _success: boolean): void {
     const experience: LearningExperience = {
       id: `exp_${Date.now()}_${this.rng.range(1000, 9999)}`,
       type: 'skill',
@@ -263,7 +263,7 @@ export class LearningSystem {
 
   // 가르치기 진행
   private progressTeaching(session: TeachingSession): void {
-    const { teacher, student, subject, effectiveness } = session;
+    const { student, subject, effectiveness } = session;
     const learningGain = effectiveness * this.rng.range(0.5, 1.5);
 
     if (this.isSkillKey(subject)) {
@@ -326,7 +326,7 @@ export class LearningSystem {
 
   // 학습 수정자 업데이트
   updateLearningModifiers(): void {
-    for (const [entityId, modifiers] of this.learningModifiers) {
+    for (const [, modifiers] of this.learningModifiers) {
       for (let i = modifiers.length - 1; i >= 0; i--) {
         modifiers[i].duration -= 1;
         if (modifiers[i].duration <= 0) {

@@ -1,7 +1,7 @@
 import { Entity, StimKey, ActionType } from '../types';
 import { RNG, calculateStim, calculateDesire } from './utils';
 import { Logger } from './utils/logger';
-import { CombatSystem } from './combat';
+
 
 export interface ActionContext {
   entity: Entity;
@@ -67,19 +67,91 @@ export class EntitySystem {
   }
 
   private checkSurvival(entity: Entity): boolean {
-    // 사망 조건
-    if (entity.hp <= 0 || entity.hunger >= 100 || entity.age >= 100) {
-      // 사망 로그
-      this.logger.warning('entity', `${entity.name}이(가) 사망했습니다. (HP: ${entity.hp.toFixed(1)}, 배고픔: ${entity.hunger.toFixed(1)}, 나이: ${entity.age.toFixed(1)})`, entity.id, entity.name);
+    // 사망 조건 체크
+    if (entity.hp <= 0) {
+      this.logDeath(entity, 'HP 부족', { hp: entity.hp, stamina: entity.stamina, hunger: entity.hunger });
       return false;
     }
+    
+    if (entity.hunger >= 100) {
+      this.logDeath(entity, '극심한 배고픔', { hp: entity.hp, hunger: entity.hunger, lastAction: 'starvation' });
+      return false;
+    }
+    
+    if (entity.age >= 100) {
+      this.logDeath(entity, '노화', { hp: entity.hp, age: entity.age, lifeSpan: 'natural' });
+      return false;
+    }
+    
+    // 위험 상태 경고
+    if (entity.hp < 20) {
+      this.logger.warning('entity', `${entity.name}이(가) 위험한 상태입니다. (HP: ${entity.hp.toFixed(1)})`, entity.id, entity.name);
+    }
+    
+    if (entity.hunger > 80) {
+      this.logger.warning('entity', `${entity.name}이(가) 매우 배고픕니다. (배고픔: ${entity.hunger.toFixed(1)})`, entity.id, entity.name);
+    }
+    
     return true;
   }
 
-  private decideAction(_entity: Entity, desires: Record<StimKey, number>, _world: any): ActionType {
+  private logDeath(entity: Entity, cause: string, details: any): void {
+    const deathInfo = {
+      cause,
+      details,
+      stats: {
+        hp: entity.hp,
+        stamina: entity.stamina,
+        hunger: entity.hunger,
+        age: entity.age,
+        species: entity.species,
+        faction: entity.factionId || '무소속'
+      },
+      skills: entity.skills,
+      position: entity.pos
+    };
+    
+    this.logger.error('entity', `${entity.name}이(가) ${cause}로 사망했습니다.`, entity.id, entity.name, deathInfo);
+  }
+
+  private calculateDistance(pos1: { x: number; y: number }, pos2: { x: number; y: number }): number {
+    const dx = pos1.x - pos2.x;
+    const dy = pos1.y - pos2.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  private decideAction(entity: Entity, desires: Record<StimKey, number>, world: any): ActionType {
+    // world 객체 안전성 체크
+    if (!world || !world.entities) {
+      return 'Rest'; // 기본 행동
+    }
+
     // 가장 높은 욕구 찾기
     const maxDesire = Math.max(...Object.values(desires));
     const maxDesireKey = Object.keys(desires).find(key => desires[key as StimKey] === maxDesire) as StimKey;
+
+    // 전투 확률 증가 (10% 확률)
+    if (this.rng.bool(0.1)) {
+      const nearbyEntities = world.entities.filter((e: Entity) => 
+        e.id !== entity.id && e.hp > 0 && 
+        this.calculateDistance(entity.pos, e.pos) < 30
+      );
+      if (nearbyEntities.length > 0) {
+        return 'Combat';
+      }
+    }
+
+    // 교배 확률 증가 (15% 확률)
+    if (this.rng.bool(0.15) && entity.age > 20 && entity.age < 80) {
+      const potentialMates = world.entities.filter((e: Entity) => 
+        e.id !== entity.id && e.hp > 0 && e.age > 20 && e.age < 80 &&
+        e.species === entity.species &&
+        this.calculateDistance(entity.pos, e.pos) < 20
+      );
+      if (potentialMates.length > 0) {
+        return 'Mate';
+      }
+    }
 
     // 욕구에 따른 행동 매핑
     const actionMap: Record<StimKey, ActionType[]> = {
@@ -135,6 +207,9 @@ export class EntitySystem {
         break;
       case 'Mate':
         success = this.performMate(entity, world);
+        break;
+      case 'Combat':
+        success = this.performCombat(entity, world);
         break;
       default:
         success = this.performRest(entity);
@@ -294,21 +369,87 @@ export class EntitySystem {
     }
   }
 
-  private performMate(entity: Entity, _world: any): boolean {
-    if (entity.stamina < 30 || entity.age < 20) return false;
+  private performMate(entity: Entity, world: any): boolean {
+    if (entity.stamina < 20 || entity.age < 20 || entity.age > 80) return false;
 
-    const skillBonus = entity.skills.lead / 100;
-    const successRate = 0.3 + skillBonus * 0.4;
+    // world 객체 안전성 체크
+    if (!world || !world.entities) return false;
+
+    // 근처의 같은 종족 엔티티 찾기
+    const potentialMates = world.entities.filter((e: Entity) => 
+      e.id !== entity.id && e.hp > 0 && e.age > 20 && e.age < 80 &&
+      e.species === entity.species &&
+      this.calculateDistance(entity.pos, e.pos) < 20
+    );
+
+    if (potentialMates.length === 0) return false;
+
+    const mate = this.rng.pick(potentialMates) as Entity;
+    const compatibility = this.calculateCompatibility(entity, mate);
     
-    if (this.rng.bool(successRate)) {
-      entity.stamina -= 30;
-      this.logger.success('entity', `${entity.name}이(가) 번식 활동을 했습니다.`, entity.id, entity.name);
-      return true;
-    } else {
-      entity.stamina -= 15;
-      this.logger.info('entity', `${entity.name}이(가) 번식 시도를 했습니다.`, entity.id, entity.name);
-      return false;
+    if (compatibility > 0.5 && this.rng.bool(0.7)) {
+      // 자식 생성
+      if (world.createChild) {
+        const childPos = {
+          x: (entity.pos.x + mate.pos.x) / 2,
+          y: (entity.pos.y + mate.pos.y) / 2
+        };
+        const child = world.createChild(entity, mate, childPos);
+        world.entities.push(child);
+        
+        this.logger.success('genetics', `${entity.name}과(와) ${mate.name}이(가) 교배하여 자식을 낳았습니다.`, entity.id, entity.name);
+        return true;
+      }
     }
+
+    entity.stamina -= 10;
+    this.logger.warning('entity', `${entity.name}이(가) 교배에 실패했습니다.`, entity.id, entity.name);
+    return false;
+  }
+
+  private performCombat(entity: Entity, world: any): boolean {
+    if (entity.stamina < 20) return false;
+
+    // world 객체 안전성 체크
+    if (!world || !world.entities) return false;
+
+    // 근처의 적대적 엔티티 찾기
+    const nearbyEntities = world.entities.filter((e: Entity) => 
+      e.id !== entity.id && e.hp > 0 && 
+      this.calculateDistance(entity.pos, e.pos) < 30
+    );
+
+    if (nearbyEntities.length === 0) return false;
+
+    const target = this.rng.pick(nearbyEntities) as Entity;
+    
+    // 전투 시스템 사용
+    if (world.combatSystem) {
+      const result = world.combatSystem.executeCombat(entity, target);
+      if (result) {
+        this.logger.success('combat', `${entity.name}이(가) ${target.name}을(를) 공격했습니다. (데미지: ${result.damage})`, entity.id, entity.name);
+        return true;
+      }
+    }
+
+    entity.stamina -= 10;
+    this.logger.warning('combat', `${entity.name}이(가) 전투에 실패했습니다.`, entity.id, entity.name);
+    return false;
+  }
+
+  private calculateCompatibility(entity1: Entity, entity2: Entity): number {
+    // 유전적 호환성 계산
+    const geneCompatibility = Object.keys(entity1.genes).reduce((sum, key) => {
+      const geneKey = key as keyof typeof entity1.genes;
+      const diff = Math.abs(entity1.genes[geneKey] - entity2.genes[geneKey]);
+      return sum + (1 - diff);
+    }, 0) / Object.keys(entity1.genes).length;
+
+    // 나이 호환성
+    const ageDiff = Math.abs(entity1.age - entity2.age);
+    const ageCompatibility = Math.max(0, 1 - ageDiff / 50);
+
+    return (geneCompatibility + ageCompatibility) / 2;
   }
 
   private craftRandomItem(_entity: Entity): string {

@@ -66,7 +66,7 @@ function App() {
 
   return (
     <div className="App">
-      <CanvasLayer worldState={gameState} />
+      <CanvasLayer worldState={gameState} bubbleFilters={bubbleFilters} />
       <TabManager gameState={gameState} />
       
       {/* 게임 정보 플로팅 패널 */}

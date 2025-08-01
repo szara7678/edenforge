@@ -117,7 +117,7 @@ export class EmotionSystem {
     return Math.max(0, Math.min(1, (frustration + hunger + fatigue) / 3));
   }
 
-  private calculateCuriosity(entity: Entity, stim: Record<StimKey, number>): number {
+  private calculateCuriosity(_entity: Entity, stim: Record<StimKey, number>): number {
     return stim.curiosity;
   }
 
@@ -202,7 +202,7 @@ export class EmotionSystem {
     return Math.max(0, Math.min(1, (health + morale + social) / 3));
   }
 
-  private calculateDespair(entity: Entity, stim: Record<StimKey, number>): number {
+  private calculateDespair(entity: Entity, _stim: Record<StimKey, number>): number {
     const lowHealth = entity.hp < 20 ? 0.7 : 0;
     const lowMorale = entity.morale < 10 ? 0.6 : 0;
     const lowStamina = entity.stamina < 10 ? 0.4 : 0;
@@ -250,7 +250,7 @@ export class EmotionSystem {
     return Math.max(0, Math.min(1, (highHealth + highMorale + social) / 3));
   }
 
-  private calculateConfusion(entity: Entity, stim: Record<StimKey, number>): number {
+  private calculateConfusion(entity: Entity, _stim: Record<StimKey, number>): number {
     const lowHealth = entity.hp < 40 ? 0.3 : 0;
     const lowStamina = entity.stamina < 30 ? 0.3 : 0;
     const uncertainty = this.rng.range(0, 0.4);
@@ -416,7 +416,7 @@ export class EmotionSystem {
   }
 
   // 생각 말풍선 생성
-  createThoughtBubble(entity: Entity, thought: string): EmotionBubble {
+  createThoughtBubble(entity: Entity, _thought: string): EmotionBubble {
     const thoughts = [
       { emoji: '💭', message: '생각 중...' },
       { emoji: '🤔', message: '음...' },
