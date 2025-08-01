@@ -8,20 +8,23 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "build:data": "tsx scripts/convert.ts",
-    "soak": "tsx scripts/soak-test.ts"
+    "soak": "tsx scripts/soak-test.ts",
+    "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {
+    "comlink": "^4.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "comlink": "^4.4.1",
     "zustand": "^4.4.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
+    "gh-pages": "^6.1.0",
+    "recharts": "^2.15.4",
+    "tsx": "^3.12.7",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5",
-    "tsx": "^3.12.7"
+    "vite": "^4.4.5"
   }
-} 
+}

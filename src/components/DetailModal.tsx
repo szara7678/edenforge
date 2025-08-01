@@ -28,23 +28,23 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           </div>
           <div className="detail-item">
             <span className="label">나이:</span>
-            <span className="value">{Math.floor(entity.age)}</span>
+            <span className="value">{entity.age.toFixed(2)}</span>
           </div>
           <div className="detail-item">
             <span className="label">HP:</span>
-            <span className="value">{Math.floor(entity.hp)}</span>
+            <span className="value">{entity.hp.toFixed(2)}</span>
           </div>
           <div className="detail-item">
             <span className="label">스태미나:</span>
-            <span className="value">{Math.floor(entity.stamina)}</span>
+            <span className="value">{entity.stamina.toFixed(2)}</span>
           </div>
           <div className="detail-item">
             <span className="label">배고픔:</span>
-            <span className="value">{Math.floor(entity.hunger)}</span>
+            <span className="value">{entity.hunger.toFixed(2)}</span>
           </div>
           <div className="detail-item">
             <span className="label">사기:</span>
-            <span className="value">{Math.floor(entity.morale)}</span>
+            <span className="value">{entity.morale.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -54,27 +54,27 @@ export const DetailModal: React.FC<DetailModalProps> = ({
         <div className="detail-grid">
           <div className="detail-item">
             <span className="label">힘:</span>
-            <span className="value">{entity.stats.str}</span>
+            <span className="value">{entity.stats.str.toFixed(2)}</span>
           </div>
           <div className="detail-item">
             <span className="label">민첩:</span>
-            <span className="value">{entity.stats.agi}</span>
+            <span className="value">{entity.stats.agi.toFixed(2)}</span>
           </div>
           <div className="detail-item">
             <span className="label">체력:</span>
-            <span className="value">{entity.stats.end}</span>
+            <span className="value">{entity.stats.end.toFixed(2)}</span>
           </div>
           <div className="detail-item">
             <span className="label">지능:</span>
-            <span className="value">{entity.stats.int}</span>
+            <span className="value">{entity.stats.int.toFixed(2)}</span>
           </div>
           <div className="detail-item">
             <span className="label">지각:</span>
-            <span className="value">{entity.stats.per}</span>
+            <span className="value">{entity.stats.per.toFixed(2)}</span>
           </div>
           <div className="detail-item">
             <span className="label">매력:</span>
-            <span className="value">{entity.stats.cha}</span>
+            <span className="value">{entity.stats.cha.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -85,7 +85,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           {Object.entries(entity.skills).map(([skill, level]) => (
             <div key={skill} className="detail-item">
               <span className="label">{skill}:</span>
-              <span className="value">{level}</span>
+              <span className="value">{level.toFixed(2)}</span>
             </div>
           ))}
         </div>

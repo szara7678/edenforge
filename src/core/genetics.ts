@@ -257,6 +257,7 @@ export class GeneticsSystem {
       morale: 50,
       pos,
       age: 0,
+      parents: [parent1.id, parent2.id], // 부모 ID 설정
       inventory: {
         items: {},
         maxCapacity: 100

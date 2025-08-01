@@ -14,12 +14,31 @@ export interface EmotionBubble {
 }
 
 export interface EmotionState {
-  happiness: number; // 0-1
-  fear: number; // 0-1
-  anger: number; // 0-1
-  curiosity: number; // 0-1
-  satisfaction: number; // 0-1
-  stress: number; // 0-1
+  // 기본 감정
+  happiness: number; // 0-1, 행복
+  fear: number; // 0-1, 공포
+  anger: number; // 0-1, 분노
+  curiosity: number; // 0-1, 호기심
+  satisfaction: number; // 0-1, 만족
+  stress: number; // 0-1, 스트레스
+  
+  // 확장된 감정
+  excitement: number; // 0-1, 흥미/흥분
+  sadness: number; // 0-1, 슬픔
+  anxiety: number; // 0-1, 불안
+  joy: number; // 0-1, 기쁨
+  frustration: number; // 0-1, 좌절
+  pride: number; // 0-1, 자부심
+  loneliness: number; // 0-1, 외로움
+  hope: number; // 0-1, 희망
+  despair: number; // 0-1, 절망
+  calmness: number; // 0-1, 평온
+  irritation: number; // 0-1, 짜증
+  gratitude: number; // 0-1, 감사
+  envy: number; // 0-1, 질투
+  confidence: number; // 0-1, 자신감
+  confusion: number; // 0-1, 혼란
+  determination: number; // 0-1, 의지
 }
 
 export class EmotionSystem {
@@ -35,12 +54,31 @@ export class EmotionSystem {
     const stim = this.calculateStim(entity);
     
     return {
+      // 기본 감정
       happiness: this.calculateHappiness(entity, stim),
       fear: this.calculateFear(entity, stim),
       anger: this.calculateAnger(entity, stim),
       curiosity: this.calculateCuriosity(entity, stim),
       satisfaction: this.calculateSatisfaction(entity, stim),
-      stress: this.calculateStress(entity, stim)
+      stress: this.calculateStress(entity, stim),
+      
+      // 확장된 감정
+      excitement: this.calculateExcitement(entity, stim),
+      sadness: this.calculateSadness(entity, stim),
+      anxiety: this.calculateAnxiety(entity, stim),
+      joy: this.calculateJoy(entity, stim),
+      frustration: this.calculateFrustration(entity, stim),
+      pride: this.calculatePride(entity, stim),
+      loneliness: this.calculateLoneliness(entity, stim),
+      hope: this.calculateHope(entity, stim),
+      despair: this.calculateDespair(entity, stim),
+      calmness: this.calculateCalmness(entity, stim),
+      irritation: this.calculateIrritation(entity, stim),
+      gratitude: this.calculateGratitude(entity, stim),
+      envy: this.calculateEnvy(entity, stim),
+      confidence: this.calculateConfidence(entity, stim),
+      confusion: this.calculateConfusion(entity, stim),
+      determination: this.calculateDetermination(entity, stim)
     };
   }
 
@@ -97,6 +135,135 @@ export class EmotionSystem {
     const hunger = entity.hunger / 100;
     
     return Math.max(0, Math.min(1, (survival + fatigue + hunger) / 3));
+  }
+
+  // 확장된 감정 계산 메서드들
+  private calculateExcitement(entity: Entity, stim: Record<StimKey, number>): number {
+    const curiosity = stim.curiosity;
+    const social = stim.social;
+    const health = entity.hp / 100;
+    
+    return Math.max(0, Math.min(1, (curiosity + social + health) / 3));
+  }
+
+  private calculateSadness(entity: Entity, stim: Record<StimKey, number>): number {
+    const lowHealth = entity.hp < 50 ? 0.5 : 0;
+    const lowMorale = entity.morale < 30 ? 0.4 : 0;
+    const loneliness = 1 - stim.social;
+    
+    return Math.max(0, Math.min(1, (lowHealth + lowMorale + loneliness) / 3));
+  }
+
+  private calculateAnxiety(entity: Entity, stim: Record<StimKey, number>): number {
+    const survival = stim.survival;
+    const lowStamina = entity.stamina < 30 ? 0.4 : 0;
+    const uncertainty = this.rng.range(0, 0.3);
+    
+    return Math.max(0, Math.min(1, (survival + lowStamina + uncertainty) / 3));
+  }
+
+  private calculateJoy(entity: Entity, stim: Record<StimKey, number>): number {
+    const happiness = this.calculateHappiness(entity, stim);
+    const satisfaction = this.calculateSatisfaction(entity, stim);
+    const social = stim.social;
+    
+    return Math.max(0, Math.min(1, (happiness + satisfaction + social) / 3));
+  }
+
+  private calculateFrustration(entity: Entity, stim: Record<StimKey, number>): number {
+    const anger = this.calculateAnger(entity, stim);
+    const lowMorale = entity.morale < 40 ? 0.5 : 0;
+    const hunger = entity.hunger / 100;
+    
+    return Math.max(0, Math.min(1, (anger + lowMorale + hunger) / 3));
+  }
+
+  private calculatePride(entity: Entity, stim: Record<StimKey, number>): number {
+    const highMorale = entity.morale > 70 ? 0.6 : 0;
+    const highHealth = entity.hp > 80 ? 0.3 : 0;
+    const social = stim.social;
+    
+    return Math.max(0, Math.min(1, (highMorale + highHealth + social) / 3));
+  }
+
+  private calculateLoneliness(entity: Entity, stim: Record<StimKey, number>): number {
+    const lowSocial = 1 - stim.social;
+    const lowMorale = entity.morale < 30 ? 0.4 : 0;
+    const isolation = this.rng.range(0, 0.3);
+    
+    return Math.max(0, Math.min(1, (lowSocial + lowMorale + isolation) / 3));
+  }
+
+  private calculateHope(entity: Entity, stim: Record<StimKey, number>): number {
+    const health = entity.hp / 100;
+    const morale = entity.morale / 100;
+    const social = stim.social;
+    
+    return Math.max(0, Math.min(1, (health + morale + social) / 3));
+  }
+
+  private calculateDespair(entity: Entity, stim: Record<StimKey, number>): number {
+    const lowHealth = entity.hp < 20 ? 0.7 : 0;
+    const lowMorale = entity.morale < 10 ? 0.6 : 0;
+    const lowStamina = entity.stamina < 10 ? 0.4 : 0;
+    
+    return Math.max(0, Math.min(1, (lowHealth + lowMorale + lowStamina) / 3));
+  }
+
+  private calculateCalmness(entity: Entity, stim: Record<StimKey, number>): number {
+    const health = entity.hp / 100;
+    const stamina = entity.stamina / 100;
+    const lowStress = 1 - this.calculateStress(entity, stim);
+    
+    return Math.max(0, Math.min(1, (health + stamina + lowStress) / 3));
+  }
+
+  private calculateIrritation(entity: Entity, stim: Record<StimKey, number>): number {
+    const anger = this.calculateAnger(entity, stim);
+    const lowStamina = entity.stamina < 40 ? 0.3 : 0;
+    const hunger = entity.hunger / 100;
+    
+    return Math.max(0, Math.min(1, (anger + lowStamina + hunger) / 3));
+  }
+
+  private calculateGratitude(entity: Entity, stim: Record<StimKey, number>): number {
+    const satisfaction = this.calculateSatisfaction(entity, stim);
+    const social = stim.social;
+    const health = entity.hp / 100;
+    
+    return Math.max(0, Math.min(1, (satisfaction + social + health) / 3));
+  }
+
+  private calculateEnvy(entity: Entity, stim: Record<StimKey, number>): number {
+    const lowMorale = entity.morale < 50 ? 0.4 : 0;
+    const lowSocial = 1 - stim.social;
+    const frustration = this.calculateFrustration(entity, stim);
+    
+    return Math.max(0, Math.min(1, (lowMorale + lowSocial + frustration) / 3));
+  }
+
+  private calculateConfidence(entity: Entity, stim: Record<StimKey, number>): number {
+    const highHealth = entity.hp > 70 ? 0.4 : 0;
+    const highMorale = entity.morale > 60 ? 0.4 : 0;
+    const social = stim.social;
+    
+    return Math.max(0, Math.min(1, (highHealth + highMorale + social) / 3));
+  }
+
+  private calculateConfusion(entity: Entity, stim: Record<StimKey, number>): number {
+    const lowHealth = entity.hp < 40 ? 0.3 : 0;
+    const lowStamina = entity.stamina < 30 ? 0.3 : 0;
+    const uncertainty = this.rng.range(0, 0.4);
+    
+    return Math.max(0, Math.min(1, (lowHealth + lowStamina + uncertainty) / 3));
+  }
+
+  private calculateDetermination(entity: Entity, stim: Record<StimKey, number>): number {
+    const morale = entity.morale / 100;
+    const health = entity.hp / 100;
+    const hope = this.calculateHope(entity, stim);
+    
+    return Math.max(0, Math.min(1, (morale + health + hope) / 3));
   }
 
   // 행동에 따른 이모지 말풍선 생성 (성능 최적화)

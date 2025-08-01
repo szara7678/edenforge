@@ -14,6 +14,7 @@ export interface Animal extends Entity {
 
 export interface Plant {
   id: string;
+  name: string; // 이름 추가
   species: 'tree' | 'grass' | 'bush' | 'flower' | 'mushroom';
   pos: Vec2;
   growth: number; // 0-1, 성장도
@@ -178,6 +179,7 @@ export class EcosystemSystem {
   createPlant(species: Plant['species'], pos: Vec2): Plant {
     const plant: Plant = {
       id: `plant_${Date.now()}_${this.rng.range(1000, 9999)}`,
+      name: this.generatePlantName(species),
       species,
       pos,
       growth: this.rng.range(0.1, 0.3),
@@ -264,12 +266,32 @@ export class EcosystemSystem {
     return this.rng.pick(names[species]);
   }
 
+  // 식물 이름 생성
+  private generatePlantName(species: Plant['species']): string {
+    const names: Record<Plant['species'], string[]> = {
+      tree: ['나무', '숲', '그림자', '강함'],
+      grass: ['풀', '초원', '녹색', '부드러움'],
+      bush: ['덤불', '숲', '작은', '숨김'],
+      flower: ['꽃', '아름다움', '향기', '색깔'],
+      mushroom: ['버섯', '독', '이상한', '어둠']
+    };
+    return this.rng.pick(names[species]);
+  }
+
   // 생태계 업데이트
   updateEcosystem(): void {
     this.updateAnimals();
     this.updatePlants();
     this.updatePulses();
     this.checkInteractions();
+  }
+
+  // 인간을 포함한 생태계 업데이트
+  updateEcosystemWithHumans(humanEntities: Entity[]): void {
+    this.updateAnimals();
+    this.updatePlants();
+    this.updatePulses();
+    this.checkInteractionsWithHumans(humanEntities);
   }
 
   // 동물 업데이트
@@ -408,7 +430,7 @@ export class EcosystemSystem {
 
   // 상호작용 체크
   private checkInteractions(): void {
-    // 동물 간 상호작용
+    // 동물 간 상호작용만
     for (let i = 0; i < this.animals.length; i++) {
       for (let j = i + 1; j < this.animals.length; j++) {
         const animal1 = this.animals[i];
@@ -418,7 +440,7 @@ export class EcosystemSystem {
 
         const distance = this.calculateDistance(animal1.pos, animal2.pos);
         
-        // 포식 관계 체크
+        // 포식 관계 체크 (스탯, 스킬, 지식 기반)
         if (this.isPredator(animal1.species, animal2.species) && distance < 30) {
           this.handlePredation(animal1, animal2);
         }
@@ -426,6 +448,11 @@ export class EcosystemSystem {
         // 경쟁 관계 체크
         if (this.isCompetitor(animal1.species, animal2.species) && distance < 20) {
           this.handleCompetition(animal1, animal2);
+        }
+
+        // 협력 관계 체크 (같은 종족)
+        if (animal1.species === animal2.species && distance < 15) {
+          this.handleCooperation(animal1, animal2);
         }
       }
     }
@@ -439,34 +466,154 @@ export class EcosystemSystem {
 
         const distance = this.calculateDistance(animal.pos, plant.pos);
         
-        // 식물 섭취
+        // 식물 섭취 (스킬 기반)
         if (this.canEatPlant(animal.species, plant.species) && distance < 10) {
           this.handlePlantConsumption(animal, plant);
+        }
+
+        // 식물 보호 (특정 동물)
+        if (this.canProtectPlant(animal.species, plant.species) && distance < 8) {
+          this.handlePlantProtection(animal, plant);
+        }
+      }
+    }
+
+    // 식물 간 상호작용
+    for (let i = 0; i < this.plants.length; i++) {
+      for (let j = i + 1; j < this.plants.length; j++) {
+        const plant1 = this.plants[i];
+        const plant2 = this.plants[j];
+        
+        if (plant1.isDead || plant2.isDead) continue;
+
+        const distance = this.calculateDistance(plant1.pos, plant2.pos);
+        
+        // 경쟁 관계 (같은 종류의 식물)
+        if (plant1.species === plant2.species && distance < 5) {
+          this.handlePlantCompetition(plant1, plant2);
+        }
+
+        // 상호작용 관계 (다른 종류의 식물)
+        if (plant1.species !== plant2.species && distance < 8) {
+          this.handlePlantInteraction(plant1, plant2);
         }
       }
     }
   }
 
-  // 포식 관계 체크
-  private isPredator(predator: Animal['species'], prey: Animal['species']): boolean {
-    const predatorPreyMap: Record<Animal['species'], Animal['species'][]> = {
-      wolf: ['deer', 'rabbit'],
-      bear: ['deer', 'rabbit'],
+  // 인간을 포함한 상호작용 체크
+  private checkInteractionsWithHumans(humanEntities: Entity[]): void {
+    // 모든 엔티티 간 상호작용 (동물 + 인간)
+    const allEntities = [...this.animals, ...humanEntities];
+    
+    for (let i = 0; i < allEntities.length; i++) {
+      for (let j = i + 1; j < allEntities.length; j++) {
+        const entity1 = allEntities[i];
+        const entity2 = allEntities[j];
+        
+        if (entity1.hp <= 0 || entity2.hp <= 0) continue;
+
+        const distance = this.calculateDistance(entity1.pos, entity2.pos);
+        
+        // 포식 관계 체크 (스탯, 스킬, 지식 기반)
+        if (this.isPredator(entity1.species, entity2.species) && distance < 30) {
+          this.handlePredation(entity1, entity2);
+        }
+        
+        // 경쟁 관계 체크
+        if (this.isCompetitor(entity1.species, entity2.species) && distance < 20) {
+          this.handleCompetition(entity1, entity2);
+        }
+
+        // 협력 관계 체크 (같은 종족)
+        if (entity1.species === entity2.species && distance < 15) {
+          this.handleCooperation(entity1, entity2);
+        }
+      }
+    }
+
+    // 동물-식물 상호작용
+    for (const animal of this.animals) {
+      if (animal.hp <= 0) continue;
+
+      for (const plant of this.plants) {
+        if (plant.isDead) continue;
+
+        const distance = this.calculateDistance(animal.pos, plant.pos);
+        
+        // 식물 섭취 (스킬 기반)
+        if (this.canEatPlant(animal.species, plant.species) && distance < 10) {
+          this.handlePlantConsumption(animal, plant);
+        }
+
+        // 식물 보호 (특정 동물)
+        if (this.canProtectPlant(animal.species, plant.species) && distance < 8) {
+          this.handlePlantProtection(animal, plant);
+        }
+      }
+    }
+
+    // 인간-식물 상호작용
+    for (const human of humanEntities) {
+      if (human.hp <= 0) continue;
+
+      for (const plant of this.plants) {
+        if (plant.isDead) continue;
+
+        const distance = this.calculateDistance(human.pos, plant.pos);
+        
+        // 인간은 모든 식물을 섭취 가능
+        if (distance < 10) {
+          this.handlePlantConsumption(human, plant);
+        }
+      }
+    }
+
+    // 식물 간 상호작용
+    for (let i = 0; i < this.plants.length; i++) {
+      for (let j = i + 1; j < this.plants.length; j++) {
+        const plant1 = this.plants[i];
+        const plant2 = this.plants[j];
+        
+        if (plant1.isDead || plant2.isDead) continue;
+
+        const distance = this.calculateDistance(plant1.pos, plant2.pos);
+        
+        // 경쟁 관계 (같은 종류의 식물)
+        if (plant1.species === plant2.species && distance < 5) {
+          this.handlePlantCompetition(plant1, plant2);
+        }
+
+        // 상호작용 관계 (다른 종류의 식물)
+        if (plant1.species !== plant2.species && distance < 8) {
+          this.handlePlantInteraction(plant1, plant2);
+        }
+      }
+    }
+  }
+
+  // 포식 관계 체크 (인간 포함)
+  private isPredator(predator: Animal['species'] | 'human', prey: Animal['species'] | 'human'): boolean {
+    const predatorPreyMap: Record<Animal['species'] | 'human', (Animal['species'] | 'human')[]> = {
+      wolf: ['deer', 'rabbit', 'human'],
+      bear: ['deer', 'rabbit', 'human'],
       fox: ['rabbit'],
-      deer: [],
-      rabbit: []
+      deer: ['rabbit'],
+      rabbit: [],
+      human: ['wolf', 'deer', 'rabbit', 'bear', 'fox'] // 인간은 모든 동물을 사냥 가능
     };
     return predatorPreyMap[predator]?.includes(prey) || false;
   }
 
   // 경쟁 관계 체크
-  private isCompetitor(species1: Animal['species'], species2: Animal['species']): boolean {
-    const competitors: Record<Animal['species'], Animal['species'][]> = {
+  private isCompetitor(species1: Animal['species'] | 'human', species2: Animal['species'] | 'human'): boolean {
+    const competitors: Record<Animal['species'] | 'human', (Animal['species'] | 'human')[]> = {
       wolf: ['fox'],
       fox: ['wolf'],
       deer: ['deer'],
       rabbit: ['rabbit'],
-      bear: ['bear']
+      bear: ['bear'],
+      human: ['human'] // 인간은 인간과 경쟁
     };
     return competitors[species1]?.includes(species2) || false;
   }
@@ -483,9 +630,23 @@ export class EcosystemSystem {
     return dietMap[animalSpecies]?.includes(plantSpecies) || false;
   }
 
+  // 식물 보호 가능 여부
+  private canProtectPlant(animalSpecies: Animal['species'], plantSpecies: Plant['species']): boolean {
+    const protectionMap: Record<Animal['species'], Plant['species'][]> = {
+      deer: ['tree'], // 사슴은 나무를 보호
+      bear: ['mushroom'], // 곰은 버섯을 보호
+      fox: ['flower'], // 여우는 꽃을 보호
+      wolf: [],
+      rabbit: []
+    };
+    return protectionMap[animalSpecies]?.includes(plantSpecies) || false;
+  }
+
   // 포식 처리
-  private handlePredation(predator: Animal, prey: Animal): void {
-    const successChance = (predator.skills.combat - prey.skills.combat) / 100 + 0.5;
+  private handlePredation(predator: Animal | Entity, prey: Animal | Entity): void {
+    const predatorCombat = 'skills' in predator ? predator.skills.combat : 50;
+    const preyCombat = 'skills' in prey ? prey.skills.combat : 50;
+    const successChance = (predatorCombat - preyCombat) / 100 + 0.5;
     
     if (this.rng.bool(successChance)) {
       // 포식 성공
@@ -496,7 +657,9 @@ export class EcosystemSystem {
       this.logger.success('ecosystem', `${predator.name}이(가) ${prey.name}을(를) 사냥했습니다!`, predator.id, predator.name, { prey: prey.name });
     } else {
       // 포식 실패
-      prey.fear = Math.min(1, prey.fear + 0.3);
+      if ('fear' in prey) {
+        prey.fear = Math.min(1, prey.fear + 0.3);
+      }
       predator.stamina = Math.max(0, predator.stamina - 10);
       
       this.logger.info('ecosystem', `${prey.name}이(가) ${predator.name}으로부터 도망쳤습니다.`, prey.id, prey.name);
@@ -504,30 +667,119 @@ export class EcosystemSystem {
   }
 
   // 경쟁 처리
-  private handleCompetition(animal1: Animal, animal2: Animal): void {
-    const strength1 = animal1.stats.str + animal1.skills.combat;
-    const strength2 = animal2.stats.str + animal2.skills.combat;
+  private handleCompetition(entity1: Animal | Entity, entity2: Animal | Entity): void {
+    const strength1 = entity1.stats.str + ('skills' in entity1 ? entity1.skills.combat : 50);
+    const strength2 = entity2.stats.str + ('skills' in entity2 ? entity2.skills.combat : 50);
     
     if (strength1 > strength2) {
-      animal2.morale = Math.max(0, animal2.morale - 10);
-      animal2.fear = Math.min(1, animal2.fear + 0.2);
+      entity2.morale = Math.max(0, entity2.morale - 10);
+      if ('fear' in entity2) {
+        entity2.fear = Math.min(1, entity2.fear + 0.2);
+      }
     } else if (strength2 > strength1) {
-      animal1.morale = Math.max(0, animal1.morale - 10);
-      animal1.fear = Math.min(1, animal1.fear + 0.2);
+      entity1.morale = Math.max(0, entity1.morale - 10);
+      if ('fear' in entity1) {
+        entity1.fear = Math.min(1, entity1.fear + 0.2);
+      }
     }
   }
 
   // 식물 섭취 처리
-  private handlePlantConsumption(animal: Animal, plant: Plant): void {
+  private handlePlantConsumption(consumer: Animal | Entity, plant: Plant): void {
     if (plant.hp <= 0) return;
 
-    const consumption = Math.min(plant.hp, 10);
+    // 배고픔이 높을수록 더 적극적으로 섭취
+    const hungerFactor = consumer.hunger / 100;
+    const gatherSkill = 'skills' in consumer ? consumer.skills.gather / 100 : 0.5;
+    const consumption = Math.min(plant.hp, 15 + gatherSkill * 10 + hungerFactor * 20);
+    
     plant.hp -= consumption;
-    animal.hunger = Math.max(0, animal.hunger - consumption * 0.5);
+    consumer.hunger = Math.max(0, consumer.hunger - consumption * 0.8);
+    consumer.hp = Math.min(100, consumer.hp + consumption * 0.1);
+    
+    // 지식 획득
+    if (!consumer.knowledge[`plant_${plant.species}`]) {
+      consumer.knowledge[`plant_${plant.species}`] = 1;
+    }
     
     if (plant.hp <= 0) {
-      this.logger.info('ecosystem', `${animal.name}이(가) ${plant.species}을(를) 먹었습니다.`, animal.id, animal.name);
+      this.logger.info('ecosystem', `${consumer.name}이(가) ${plant.species}을(를) 완전히 먹었습니다.`, consumer.id, consumer.name);
+    } else {
+      this.logger.info('ecosystem', `${consumer.name}이(가) ${plant.species}을(를) 부분적으로 섭취했습니다.`, consumer.id, consumer.name);
     }
+  }
+
+  // 협력 처리
+  private handleCooperation(entity1: Animal | Entity, entity2: Animal | Entity): void {
+    // 같은 종족 간 협력
+    if (entity1.species === entity2.species) {
+      // 사기 상승
+      entity1.morale = Math.min(100, entity1.morale + 2);
+      entity2.morale = Math.min(100, entity2.morale + 2);
+      
+      // 지식 공유
+      this.shareKnowledge(entity1, entity2);
+    }
+  }
+
+  // 지식 공유
+  private shareKnowledge(entity1: Animal | Entity, entity2: Animal | Entity): void {
+    const knowledge1 = Object.keys(entity1.knowledge);
+    const knowledge2 = Object.keys(entity2.knowledge);
+    
+    // 서로 다른 지식 교환
+    for (const knowledge of knowledge1) {
+      if (!entity2.knowledge[knowledge]) {
+        entity2.knowledge[knowledge] = 1;
+      }
+    }
+    
+    for (const knowledge of knowledge2) {
+      if (!entity1.knowledge[knowledge]) {
+        entity1.knowledge[knowledge] = 1;
+      }
+    }
+  }
+
+  // 식물 보호 처리
+  private handlePlantProtection(animal: Animal, plant: Plant): void {
+    // 식물 HP 회복
+    plant.hp = Math.min(plant.maxHp, plant.hp + 2);
+    
+    // 동물의 사기 상승
+    animal.morale = Math.min(100, animal.morale + 1);
+    
+    this.logger.info('ecosystem', `${animal.name}이(가) ${plant.species}을(를) 보호했습니다.`, animal.id, animal.name);
+  }
+
+  // 식물 경쟁 처리
+  private handlePlantCompetition(plant1: Plant, plant2: Plant): void {
+    // 성장 속도 감소
+    plant1.growth = Math.max(0, plant1.growth - 0.001);
+    plant2.growth = Math.max(0, plant2.growth - 0.001);
+  }
+
+  // 식물 상호작용 처리
+  private handlePlantInteraction(plant1: Plant, plant2: Plant): void {
+    // 상호작용에 따른 성장 촉진
+    if (this.isBeneficialInteraction(plant1.species, plant2.species)) {
+      plant1.growth = Math.min(1, plant1.growth + 0.002);
+      plant2.growth = Math.min(1, plant2.growth + 0.002);
+    }
+  }
+
+  // 유익한 식물 상호작용 여부
+  private isBeneficialInteraction(species1: Plant['species'], species2: Plant['species']): boolean {
+    const beneficialPairs = [
+      ['tree', 'mushroom'], // 나무와 버섯
+      ['grass', 'flower'], // 풀과 꽃
+      ['bush', 'flower'] // 관목과 꽃
+    ];
+    
+    return beneficialPairs.some(pair => 
+      (pair[0] === species1 && pair[1] === species2) ||
+      (pair[0] === species2 && pair[1] === species1)
+    );
   }
 
   // 거리 계산
@@ -574,6 +826,13 @@ export class EcosystemSystem {
     return this.animals;
   }
 
+  // 인간 엔티티 목록 조회 (월드에서 가져옴)
+  private getHumanEntities(): Entity[] {
+    // 이 메서드는 월드 시스템에서 호출될 때 엔티티 목록을 받아야 함
+    // 임시로 빈 배열 반환
+    return [];
+  }
+
   // 식물 목록 조회
   getPlants(): Plant[] {
     return this.plants;
@@ -595,11 +854,11 @@ export class EcosystemSystem {
     const x = pos.x / 1000;
     const y = pos.y / 1000;
     
-    if (x < 0.3 && y < 0.3) return this.biomes.get('forest');
-    if (x > 0.7 && y < 0.5) return this.biomes.get('grassland');
-    if (x < 0.5 && y > 0.7) return this.biomes.get('mountain');
-    if (x > 0.7 && y > 0.7) return this.biomes.get('swamp');
+    if (x < 0.3 && y < 0.3) return this.biomes.get('forest') || null;
+    if (x > 0.7 && y < 0.5) return this.biomes.get('grassland') || null;
+    if (x < 0.5 && y > 0.7) return this.biomes.get('mountain') || null;
+    if (x > 0.7 && y > 0.7) return this.biomes.get('swamp') || null;
     
-    return this.biomes.get('forest'); // 기본값
+    return this.biomes.get('forest') || null; // 기본값
   }
 } 

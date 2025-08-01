@@ -31,6 +31,10 @@ export class RNG {
   range(min: number, max: number): number {
     return min + this.next() * (max - min);
   }
+
+  choice<T>(array: T[]): T {
+    return array[Math.floor(this.next() * array.length)];
+  }
 }
 
 /** 벡터 연산 */

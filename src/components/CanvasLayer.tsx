@@ -1,12 +1,21 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { WorldState } from '../types';
 
 interface CanvasLayerProps {
   worldState: WorldState;
 }
 
+interface MapView {
+  x: number;
+  y: number;
+  scale: number;
+}
+
 const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [mapView, setMapView] = useState<MapView>({ x: 0, y: 0, scale: 1 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -15,13 +24,24 @@ const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // 캔버스 크기 설정
+    // 캔버스 크기 설정 (패딩 포함)
+    const padding = 10;
     canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.height = window.innerHeight - padding * 2;
 
     // 배경 지우기
     ctx.fillStyle = '#2a2a2a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 맵 경계 그리기
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(padding, padding, canvas.width - padding * 2, canvas.height - padding * 2);
+
+    // 좌표 변환 적용
+    ctx.save();
+    ctx.translate(mapView.x, mapView.y);
+    ctx.scale(mapView.scale, mapView.scale);
 
     // 엔티티 렌더링
     ctx.font = '12px Noto Sans KR';
@@ -260,18 +280,148 @@ const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState }) => {
       }
     }
 
-  }, [worldState]);
+    // 좌표 변환 복원
+    ctx.restore();
+
+  }, [worldState, mapView]);
+
+  // 마우스 이벤트 핸들러
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - mapView.x, y: e.clientY - mapView.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging) {
+      setMapView(prev => ({
+        ...prev,
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      }));
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setMapView(prev => ({
+      ...prev,
+      scale: Math.max(0.5, Math.min(3, prev.scale * delta))
+    }));
+  };
+
+  const zoomIn = () => {
+    setMapView(prev => ({
+      ...prev,
+      scale: Math.min(3, prev.scale * 1.2)
+    }));
+  };
+
+  const zoomOut = () => {
+    setMapView(prev => ({
+      ...prev,
+      scale: Math.max(0.5, prev.scale * 0.8)
+    }));
+  };
+
+  const resetView = () => {
+    setMapView({ x: 0, y: 0, scale: 1 });
+  };
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
+    <div style={{ position: 'relative' }}>
+      <canvas
+        ref={canvasRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onWheel={handleWheel}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          zIndex: 1,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+      />
+      
+      {/* 맵 컨트롤 버튼 */}
+      <div style={{
         position: 'absolute',
-        top: 0,
-        left: 0,
-        zIndex: 1
-      }}
-    />
+        top: '20px',
+        right: '20px',
+        zIndex: 10,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '5px'
+      }}>
+        <button
+          onClick={zoomIn}
+          style={{
+            width: '40px',
+            height: '40px',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: 'white',
+            border: '1px solid #4ecdc4',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '16px'
+          }}
+        >
+          +
+        </button>
+        <button
+          onClick={zoomOut}
+          style={{
+            width: '40px',
+            height: '40px',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: 'white',
+            border: '1px solid #4ecdc4',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '16px'
+          }}
+        >
+          -
+        </button>
+        <button
+          onClick={resetView}
+          style={{
+            width: '40px',
+            height: '40px',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: 'white',
+            border: '1px solid #4ecdc4',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '12px'
+          }}
+        >
+          ⌂
+        </button>
+      </div>
+      
+      {/* 맵 정보 */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        zIndex: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        color: 'white',
+        padding: '10px',
+        borderRadius: '4px',
+        fontSize: '12px'
+      }}>
+        <div>확대: {(mapView.scale * 100).toFixed(0)}%</div>
+        <div>위치: ({mapView.x.toFixed(0)}, {mapView.y.toFixed(0)})</div>
+      </div>
+    </div>
   );
 };
 

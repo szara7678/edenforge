@@ -1,6 +1,7 @@
 import { Entity, Vec2 } from '../types';
 import { RNG } from './utils';
 import { Logger } from './utils/logger';
+import { FactionNameGenerator } from './utils/factionNameGenerator';
 import { CombatSystem } from './combat';
 
 export interface Faction {
@@ -40,6 +41,7 @@ export interface FactionRelation {
 export class FactionSystem {
   private logger: Logger;
   private rng: RNG;
+  private nameGenerator: FactionNameGenerator;
   private combatSystem: CombatSystem;
   private factions: Map<string, Faction> = new Map();
   private relations: Map<string, FactionRelation> = new Map();
@@ -47,6 +49,7 @@ export class FactionSystem {
   constructor(logger: Logger) {
     this.logger = logger;
     this.rng = new RNG();
+    this.nameGenerator = new FactionNameGenerator();
     this.combatSystem = new CombatSystem(logger);
   }
 
@@ -86,6 +89,24 @@ export class FactionSystem {
     this.logger.success('faction', `${name} 파벌이 생성되었습니다.`, leader.id, leader.name, { factionId: faction.id });
     
     return faction;
+  }
+
+  // 랜덤 파벌 생성
+  createRandomFaction(leader: Entity): Faction {
+    const name = this.nameGenerator.generateFactionName();
+    const color = this.generateRandomColor();
+    return this.createFaction(name, leader, color);
+  }
+
+  // 랜덤 색상 생성
+  private generateRandomColor(): string {
+    const colors = [
+      '#ff6b6b', '#4ecdc4', '#ffd93d', '#6c5ce7', '#a29bfe', '#fd79a8',
+      '#fdcb6e', '#e17055', '#00b894', '#00cec9', '#74b9ff', '#0984e3',
+      '#55a3ff', '#00d2d3', '#54a0ff', '#5f27cd', '#ff9ff3', '#f368e0',
+      '#ff9f43', '#ee5a24', '#ff6348', '#ff4757', '#ff3838', '#ff6b6b'
+    ];
+    return this.rng.choice(colors);
   }
 
   // 파벌에 멤버 추가
@@ -274,7 +295,14 @@ export class FactionSystem {
       this.updateFactionStats(faction);
       this.updateFactionTerritory(faction);
       this.updateFactionRelations(faction);
+      this.updateFactionSurvival(faction);
     }
+    
+    // 파벌 간 상호작용
+    this.updateFactionInteractions();
+    
+    // 새로운 파벌 생성 시도
+    this.attemptNewFactionCreation(world);
   }
 
   // 파벌 통계 업데이트
@@ -283,6 +311,14 @@ export class FactionSystem {
     
     // 인구 통계
     faction.stats.population = members.length;
+    
+    // 멤버가 없으면 모든 통계를 0으로 설정
+    if (members.length === 0) {
+      faction.stats.military = 0;
+      faction.stats.economy = 0;
+      faction.stats.technology = 0;
+      return;
+    }
     
     // 군사력 계산
     const totalCombatSkill = members.reduce((sum, m) => sum + m.skills.combat, 0);
@@ -296,7 +332,7 @@ export class FactionSystem {
     faction.stats.economy = Math.floor(totalResources / 10);
     
     // 기술력 계산
-    const totalResearchSkill = members.reduce((sum, m) => sum + m.skills.research, 0);
+    const totalResearchSkill = members.reduce((sum, m) => sum + (m.skills.analyze || 0), 0);
     faction.stats.technology = Math.floor(totalResearchSkill / members.length);
   }
 
@@ -320,6 +356,137 @@ export class FactionSystem {
         // 초기 관계 설정
         const initialValue = this.rng.range(-20, 20);
         this.setFactionRelation(faction.id, otherFaction.id, initialValue, '초기 관계 설정');
+      }
+    }
+  }
+
+  // 파벌 생존 업데이트
+  private updateFactionSurvival(faction: Faction): void {
+    const aliveMembers = faction.members.filter(m => m.hp > 0);
+    
+    // 인구수가 0이면 파벌 삭제
+    if (faction.stats.population === 0) {
+      this.removeFaction(faction.id);
+      this.logger.warning('faction', `${faction.name} 파벌의 인구수가 0이 되어 해산되었습니다.`, '', '', { factionId: faction.id });
+      return;
+    }
+    
+    // 모든 멤버가 사망했으면 파벌 해산
+    if (aliveMembers.length === 0) {
+      this.removeFaction(faction.id);
+      this.logger.warning('faction', `${faction.name} 파벌의 모든 멤버가 사망하여 해산되었습니다.`, '', '', { factionId: faction.id });
+      return;
+    }
+    
+    // 리더가 사망했으면 새로운 리더 선정
+    if (faction.leader && faction.leader.hp <= 0) {
+      faction.leader = aliveMembers[0];
+      this.logger.info('faction', `${faction.name}의 새로운 리더가 선정되었습니다.`, faction.leader.id, faction.leader.name);
+    }
+    
+    // 파벌이 너무 약해지면 해산 가능성
+    if (aliveMembers.length === 1 && this.rng.bool(0.1)) {
+      this.removeFaction(faction.id);
+      this.logger.warning('faction', `${faction.name} 파벌이 약해져서 해산되었습니다.`, '', '', { factionId: faction.id });
+    }
+  }
+
+  // 파벌 간 상호작용 업데이트
+  private updateFactionInteractions(): void {
+    const factions = Array.from(this.factions.values());
+    
+    for (let i = 0; i < factions.length; i++) {
+      for (let j = i + 1; j < factions.length; j++) {
+        const faction1 = factions[i];
+        const faction2 = factions[j];
+        
+        // 전쟁 시도
+        if (this.rng.bool(0.05)) { // 5% 확률로 전쟁
+          this.attemptFactionWar(faction1, faction2);
+        }
+        
+        // 거래 시도
+        if (this.rng.bool(0.1)) { // 10% 확률로 거래
+          this.attemptFactionTrade(faction1, faction2);
+        }
+        
+        // 동맹 시도
+        if (this.rng.bool(0.03)) { // 3% 확률로 동맹
+          this.attemptFactionAlliance(faction1, faction2);
+        }
+      }
+    }
+  }
+
+  // 전쟁 시도
+  private attemptFactionWar(faction1: Faction, faction2: Faction): void {
+    const relation = this.getFactionRelation(faction1.id, faction2.id);
+    if (!relation || relation.value > -20) return; // 관계가 너무 좋으면 전쟁 안함
+    
+    if (faction1.stats.military > faction2.stats.military * 1.5) {
+      // faction1이 훨씬 강하면 전쟁 시도
+      this.initiateFactionWar(faction1, faction2);
+    } else if (faction2.stats.military > faction1.stats.military * 1.5) {
+      // faction2가 훨씬 강하면 전쟁 시도
+      this.initiateFactionWar(faction2, faction1);
+    }
+  }
+
+  // 거래 시도
+  private attemptFactionTrade(faction1: Faction, faction2: Faction): void {
+    const relation = this.getFactionRelation(faction1.id, faction2.id);
+    if (!relation || relation.value < 10) return; // 관계가 좋지 않으면 거래 안함
+    
+    const resources = ['food', 'materials', 'tools', 'weapons'];
+    const resource = this.rng.choice(resources);
+    const amount = this.rng.range(5, 20);
+    
+    this.initiateTrade(faction1, faction2, resource, amount);
+  }
+
+  // 동맹 시도
+  private attemptFactionAlliance(faction1: Faction, faction2: Faction): void {
+    const relation = this.getFactionRelation(faction1.id, faction2.id);
+    if (!relation || relation.value < 50) return; // 관계가 충분히 좋지 않으면 동맹 안함
+    
+    this.formAlliance(faction1, faction2);
+  }
+
+  // 새로운 파벌 생성 시도
+  private attemptNewFactionCreation(world: any): void {
+    const factions = this.getAllFactions();
+    const totalPopulation = factions.reduce((sum, f) => sum + f.stats.population, 0);
+    
+    // 총 인구가 50명 이상이고 파벌이 8개 미만일 때 새로운 파벌 생성 가능
+    if (totalPopulation >= 50 && factions.length < 8) {
+      const entities = world.state.entities.filter((e: Entity) => e.hp > 0 && !e.factionId);
+      
+      if (entities.length >= 3) {
+        // 새로운 파벌을 만들 수 있는 충분한 독립 엔티티가 있음
+        const leader = this.rng.choice(entities) as Entity;
+        const newFaction = this.createRandomFaction(leader);
+        
+        // 추가 멤버들 찾기
+        const nearbyEntities = entities.filter((e: Entity) => {
+          const distance = Math.sqrt(
+            Math.pow(e.pos.x - leader.pos.x, 2) + 
+            Math.pow(e.pos.y - leader.pos.y, 2)
+          );
+          return distance < 100 && e.id !== leader.id;
+        });
+        
+        // 2-4명의 멤버 추가
+        const memberCount = Math.min(this.rng.range(2, 5), nearbyEntities.length);
+        for (let i = 0; i < memberCount; i++) {
+          const member = this.rng.choice(nearbyEntities) as Entity;
+          this.addMemberToFaction(newFaction.id, member);
+          nearbyEntities.splice(nearbyEntities.indexOf(member), 1);
+        }
+        
+        this.logger.success('faction', `새로운 파벌 "${newFaction.name}"이(가) 형성되었습니다!`, '', '', { 
+          factionId: newFaction.id, 
+          memberCount: newFaction.members.length 
+        });
       }
     }
   }

@@ -10,7 +10,7 @@ interface UnifiedPanelProps {
 }
 
 type TabType = 'materials' | 'entities';
-type FilterType = 'all' | 'tier1' | 'tier2' | 'tier3' | 'tier4' | 'tier5';
+type FilterType = 'all' | 'tier1' | 'tier2' | 'tier3' | 'tier4' | 'tier5' | 'tier6' | 'tier7' | 'tier8' | 'tier9' | 'tier10';
 
 const UnifiedPanel: React.FC<UnifiedPanelProps> = ({ 
   materials, 
@@ -191,11 +191,19 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
           }}
         >
           <option value="all">전체</option>
-          <option value="tier1">티어 1</option>
-          <option value="tier2">티어 2</option>
-          <option value="tier3">티어 3</option>
-          <option value="tier4">티어 4</option>
-          <option value="tier5">티어 5</option>
+          {activeTab === 'materials' ? (
+            // 재료의 경우 실제 존재하는 티어만 표시
+            Array.from(new Set(materials.map(m => m.tier)))
+              .sort((a, b) => a - b)
+              .map(tier => (
+                <option key={tier} value={`tier${tier}`}>티어 {tier}</option>
+              ))
+          ) : (
+            // 엔티티의 경우 1-10 티어 모두 표시
+            Array.from({ length: 10 }, (_, i) => i + 1).map(tier => (
+              <option key={tier} value={`tier${tier}`}>티어 {tier}</option>
+            ))
+          )}
         </select>
       </div>
 

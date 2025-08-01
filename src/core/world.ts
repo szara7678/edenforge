@@ -1,6 +1,7 @@
 import { WorldState, Entity, Vec2, Animal, Plant } from '../types';
 import { RNG, uuid } from './utils';
 import { Logger } from './utils/logger';
+import { NameGenerator } from './utils/nameGenerator';
 import { MaterialSystem } from './material';
 import { EntitySystem } from './entity';
 import { FactionSystem } from './faction';
@@ -13,6 +14,7 @@ export class World {
   private state: WorldState;
   private rng: RNG;
   private logger: Logger;
+  private nameGenerator: NameGenerator;
   private materialSystem: MaterialSystem;
   private entitySystem: EntitySystem;
   private factionSystem: FactionSystem;
@@ -24,6 +26,7 @@ export class World {
   constructor() {
     this.rng = new RNG();
     this.logger = new Logger();
+    this.nameGenerator = new NameGenerator();
     this.materialSystem = new MaterialSystem(this.logger);
     this.entitySystem = new EntitySystem(this.logger);
     this.factionSystem = new FactionSystem(this.logger);
@@ -105,8 +108,8 @@ export class World {
     this.learningSystem.updateTeaching();
     this.learningSystem.updateLearningModifiers();
 
-    // 생태계 시스템 업데이트
-    this.ecosystemSystem.updateEcosystem();
+    // 생태계 시스템 업데이트 (인간 엔티티 포함)
+    this.ecosystemSystem.updateEcosystemWithHumans(this.state.entities);
 
     // 감정 시스템 업데이트
     this.emotionSystem.updateBubbles();
@@ -154,10 +157,9 @@ export class World {
 
   // 엔티티 생성
   spawnEntity(species: Entity['species'], pos: Vec2): Entity {
-    const names = ['아린', '벨라', '카이', '루나', '토르', '프레이', '마야', '제이크', '소피', '리오'];
     const entity: Entity = {
       id: uuid(),
-      name: this.rng.pick(names),
+      name: this.nameGenerator.generateSpeciesName(species),
       species,
       stats: {
         str: this.rng.range(20, 80),
@@ -231,25 +233,18 @@ export class World {
 
   // 초기 파벌 생성
   private createInitialFactions(): void {
-    const factionNames = ['붉은 용', '푸른 늑대', '황금 사자', '은빛 독수리'];
-    const factionColors = ['#ff6b6b', '#4ecdc4', '#ffd93d', '#6c5ce7'];
-    
     // 엔티티들을 그룹으로 나누어 파벌 생성
     const entities = this.state.entities;
-    const groupSize = Math.ceil(entities.length / factionNames.length);
+    const initialFactionCount = Math.min(4, Math.ceil(entities.length / 3));
     
-    for (let i = 0; i < factionNames.length; i++) {
-      const startIndex = i * groupSize;
-      const endIndex = Math.min(startIndex + groupSize, entities.length);
+    for (let i = 0; i < initialFactionCount; i++) {
+      const startIndex = i * Math.ceil(entities.length / initialFactionCount);
+      const endIndex = Math.min(startIndex + Math.ceil(entities.length / initialFactionCount), entities.length);
       const groupEntities = entities.slice(startIndex, endIndex);
       
       if (groupEntities.length > 0) {
         const leader = groupEntities[0];
-        const faction = this.factionSystem.createFaction(
-          factionNames[i], 
-          leader, 
-          factionColors[i]
-        );
+        const faction = this.factionSystem.createRandomFaction(leader);
         
         // 나머지 엔티티들을 파벌에 추가
         for (let j = 1; j < groupEntities.length; j++) {
@@ -374,12 +369,16 @@ export class World {
 
   // 동물 생성
   createAnimal(species: Animal['species'], pos: Vec2): Animal {
-    return this.ecosystemSystem.createAnimal(species, pos);
+    const animal = this.ecosystemSystem.createAnimal(species, pos);
+    animal.name = this.nameGenerator.generateSpeciesName(species);
+    return animal;
   }
 
   // 식물 생성
   createPlant(species: Plant['species'], pos: Vec2): Plant {
-    return this.ecosystemSystem.createPlant(species, pos);
+    const plant = this.ecosystemSystem.createPlant(species, pos);
+    plant.name = this.nameGenerator.generateSpeciesName(species);
+    return plant;
   }
 
   // Pulse 영향 계산

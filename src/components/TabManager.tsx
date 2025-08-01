@@ -6,6 +6,7 @@ import { GeneticsPanel } from './GeneticsPanel';
 import { EcosystemPanel } from './EcosystemPanel';
 import LogPanel from './LogPanel';
 import { DetailModal } from './DetailModal';
+import { StatsPanel } from './StatsPanel';
 import { WorldState, Entity, Material, Faction, Animal, Plant } from '../types';
 
 interface TabManagerProps {
@@ -23,7 +24,8 @@ export const TabManager: React.FC<TabManagerProps> = ({ gameState }) => {
     faction: { isOpen: false, position: { x: 370, y: 10 } },
     genetics: { isOpen: false, position: { x: 730, y: 10 } },
     ecosystem: { isOpen: false, position: { x: 10, y: 420 } },
-    log: { isOpen: false, position: { x: 370, y: 420 } }
+    stats: { isOpen: false, position: { x: 370, y: 420 } },
+    log: { isOpen: false, position: { x: 730, y: 420 } }
   });
 
   // 모달 상태
@@ -36,6 +38,7 @@ export const TabManager: React.FC<TabManagerProps> = ({ gameState }) => {
     { id: 'faction', name: '파벌', icon: '⚔️' },
     { id: 'genetics', name: '유전', icon: '🧬' },
     { id: 'ecosystem', name: '생태계', icon: '🌿' },
+    { id: 'stats', name: '통계', icon: '📈' },
     { id: 'log', name: '로그', icon: '📝' }
   ];
 
@@ -89,8 +92,8 @@ export const TabManager: React.FC<TabManagerProps> = ({ gameState }) => {
     const commonProps = {
       onClose: () => handlePanelClose(tabId),
       initialPosition: panel.position,
-      width: 350,
-      height: 400,
+      width: 500,
+      height: 600,
       onPositionChange: (newPosition: { x: number; y: number }) => handlePanelDrag(tabId, newPosition)
     };
 
@@ -153,6 +156,13 @@ export const TabManager: React.FC<TabManagerProps> = ({ gameState }) => {
                 openModal(plant, 'plant');
               }}
             />
+          </DraggablePanel>
+        );
+
+      case 'stats':
+        return (
+          <DraggablePanel title="통계 패널" {...commonProps}>
+            <StatsPanel worldState={gameState} />
           </DraggablePanel>
         );
 

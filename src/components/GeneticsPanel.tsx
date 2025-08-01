@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Entity } from '../types';
 import { GeneticTrait } from '../core/genetics';
 import { LearningExperience, TeachingSession } from '../core/learning';
@@ -9,13 +9,19 @@ interface GeneticsPanelProps {
   onEntitySelect?: (entity: Entity) => void;
 }
 
+interface FamilyNode {
+  entity: Entity;
+  children: FamilyNode[];
+  level: number;
+}
+
 export const GeneticsPanel: React.FC<GeneticsPanelProps> = ({ 
   entities, 
   geneticTraits,
   onEntitySelect 
 }) => {
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
-  const [activeTab, setActiveTab] = useState<'traits' | 'learning' | 'teaching' | 'stats'>('traits');
+  const [activeTab, setActiveTab] = useState<'family-tree' | 'ancestry-data' | 'traits'>('family-tree');
 
   const handleEntitySelect = (entity: Entity) => {
     setSelectedEntity(entity);
@@ -65,6 +71,180 @@ export const GeneticsPanel: React.FC<GeneticsPanelProps> = ({
     return skillNames[skillKey] || skillKey;
   };
 
+  // 가족 트리 렌더링
+  const renderFamilyTree = (entity: Entity) => {
+    const buildFamilyTree = (targetEntity: Entity, level: number = 0): FamilyNode => {
+      const children = entities.filter(e => 
+        e.parents && e.parents.includes(targetEntity.id)
+      );
+      
+      return {
+        entity: targetEntity,
+        children: children.map(child => buildFamilyTree(child, level + 1)),
+        level
+      };
+    };
+
+    const familyTree = buildFamilyTree(entity);
+
+    const renderNode = (node: FamilyNode) => (
+      <div key={node.entity.id} className="family-node" style={{ marginLeft: `${node.level * 20}px` }}>
+        <div className="node-content">
+          <div className="node-name">{node.entity.name}</div>
+          <div className="node-info">
+            나이: {node.entity.age.toFixed(1)} | 
+            HP: {node.entity.hp.toFixed(1)} | 
+            특성: {node.entity.geneticTraits?.length || 0}개
+          </div>
+        </div>
+        {node.children.length > 0 && (
+          <div className="node-children">
+            {node.children.map(child => renderNode(child))}
+          </div>
+        )}
+      </div>
+    );
+
+    return (
+      <div className="family-tree">
+        <div className="tree-info">
+          <p>가족 구성원: {countFamilyMembers(familyTree)}명</p>
+          <p>세대 수: {getMaxGeneration(familyTree)}세대</p>
+        </div>
+        <div className="tree-nodes">
+          {renderNode(familyTree)}
+        </div>
+      </div>
+    );
+  };
+
+  // 선조 데이터 추이 렌더링
+  const renderAncestryData = (entity: Entity) => {
+    const getAncestors = (targetEntity: Entity): Entity[] => {
+      const ancestors: Entity[] = [];
+      const visited = new Set<string>();
+
+      const traverse = (currentEntity: Entity) => {
+        if (visited.has(currentEntity.id)) return;
+        visited.add(currentEntity.id);
+
+        if (currentEntity.parents && currentEntity.parents.length > 0) {
+          const parents = entities.filter(e => currentEntity.parents!.includes(e.id));
+          parents.forEach(parent => {
+            ancestors.push(parent);
+            traverse(parent);
+          });
+        }
+      };
+
+      traverse(targetEntity);
+      return ancestors;
+    };
+
+    const ancestors = getAncestors(entity);
+    const generations = groupByGeneration(ancestors);
+
+    return (
+      <div className="ancestry-data">
+        <div className="ancestry-summary">
+          <h5>선조 통계</h5>
+          <div className="summary-grid">
+            <div className="summary-item">
+              <div className="summary-label">총 선조 수</div>
+              <div className="summary-value">{ancestors.length}</div>
+            </div>
+            <div className="summary-item">
+              <div className="summary-label">평균 나이</div>
+              <div className="summary-value">
+                {ancestors.length > 0 
+                  ? (ancestors.reduce((sum, a) => sum + a.age, 0) / ancestors.length).toFixed(1)
+                  : '0.0'
+                }
+              </div>
+            </div>
+            <div className="summary-item">
+              <div className="summary-label">평균 지능</div>
+              <div className="summary-value">
+                {ancestors.length > 0 
+                  ? (ancestors.reduce((sum, a) => sum + a.stats.int, 0) / ancestors.length).toFixed(1)
+                  : '0.0'
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="generation-charts">
+          <h5>세대별 특성 분포</h5>
+          {Object.entries(generations).map(([gen, members]) => (
+            <div key={gen} className="generation-chart">
+              <h6>{gen}세대 ({members.length}명)</h6>
+              <div className="chart-bars">
+                <div className="chart-bar">
+                  <div className="bar-label">평균 지능</div>
+                  <div className="bar-container">
+                    <div 
+                      className="bar-fill" 
+                      style={{ 
+                        width: `${(members.reduce((sum, m) => sum + m.stats.int, 0) / members.length)}%`,
+                        backgroundColor: '#4ecdc4'
+                      }}
+                    ></div>
+                  </div>
+                  <div className="bar-value">
+                    {(members.reduce((sum, m) => sum + m.stats.int, 0) / members.length).toFixed(1)}
+                  </div>
+                </div>
+                <div className="chart-bar">
+                  <div className="bar-label">평균 힘</div>
+                  <div className="bar-container">
+                    <div 
+                      className="bar-fill" 
+                      style={{ 
+                        width: `${(members.reduce((sum, m) => sum + m.stats.str, 0) / members.length)}%`,
+                        backgroundColor: '#ff6b6b'
+                      }}
+                    ></div>
+                  </div>
+                  <div className="bar-value">
+                    {(members.reduce((sum, m) => sum + m.stats.str, 0) / members.length).toFixed(1)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // 가족 구성원 수 계산
+  const countFamilyMembers = (node: FamilyNode): number => {
+    return 1 + node.children.reduce((sum, child) => sum + countFamilyMembers(child), 0);
+  };
+
+  // 최대 세대 수 계산
+  const getMaxGeneration = (node: FamilyNode): number => {
+    if (node.children.length === 0) return 1;
+    return 1 + Math.max(...node.children.map(child => getMaxGeneration(child)));
+  };
+
+  // 세대별 그룹화
+  const groupByGeneration = (ancestors: Entity[]): Record<string, Entity[]> => {
+    const generations: Record<string, Entity[]> = {};
+    
+    ancestors.forEach(ancestor => {
+      const gen = Math.floor(ancestor.age / 20) + 1; // 나이를 기반으로 세대 계산
+      const genKey = `${gen}세대`;
+      if (!generations[genKey]) {
+        generations[genKey] = [];
+      }
+      generations[genKey].push(ancestor);
+    });
+
+    return generations;
+  };
+
   return (
     <div className="genetics-panel">
       <div className="genetics-header">
@@ -102,32 +282,44 @@ export const GeneticsPanel: React.FC<GeneticsPanelProps> = ({
           <div className="entity-details">
             <div className="entity-tabs">
               <button 
+                className={activeTab === 'family-tree' ? 'active' : ''}
+                onClick={() => setActiveTab('family-tree')}
+              >
+                가족 트리
+              </button>
+              <button 
+                className={activeTab === 'ancestry-data' ? 'active' : ''}
+                onClick={() => setActiveTab('ancestry-data')}
+              >
+                선조 데이터
+              </button>
+              <button 
                 className={activeTab === 'traits' ? 'active' : ''}
                 onClick={() => setActiveTab('traits')}
               >
                 유전 특성
               </button>
-              <button 
-                className={activeTab === 'learning' ? 'active' : ''}
-                onClick={() => setActiveTab('learning')}
-              >
-                학습 경험
-              </button>
-              <button 
-                className={activeTab === 'teaching' ? 'active' : ''}
-                onClick={() => setActiveTab('teaching')}
-              >
-                가르치기
-              </button>
-              <button 
-                className={activeTab === 'stats' ? 'active' : ''}
-                onClick={() => setActiveTab('stats')}
-              >
-                통계
-              </button>
             </div>
 
             <div className="tab-content">
+              {activeTab === 'family-tree' && (
+                <div className="family-tree-tab">
+                  <h4>{selectedEntity.name}의 가족 트리</h4>
+                  <div className="family-tree-container">
+                    {renderFamilyTree(selectedEntity)}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'ancestry-data' && (
+                <div className="ancestry-data-tab">
+                  <h4>{selectedEntity.name}의 선조 데이터 추이</h4>
+                  <div className="ancestry-charts">
+                    {renderAncestryData(selectedEntity)}
+                  </div>
+                </div>
+              )}
+
               {activeTab === 'traits' && (
                 <div className="traits-tab">
                   <div className="entity-header-info">
@@ -157,140 +349,6 @@ export const GeneticsPanel: React.FC<GeneticsPanelProps> = ({
                     ) : (
                       <div className="no-traits">유전 특성이 없습니다.</div>
                     )}
-                  </div>
-
-                  <div className="available-traits">
-                    <h5>획득 가능한 특성</h5>
-                    <div className="trait-list">
-                      {geneticTraits.filter(trait => 
-                        !selectedEntity.geneticTraits?.includes(trait.id)
-                      ).map(trait => (
-                        <div key={trait.id} className="trait-item available">
-                          <div className="trait-name">{trait.name}</div>
-                          <div className="trait-description">{trait.description}</div>
-                          <div className="trait-rarity">희귀도: {(trait.rarity * 100).toFixed(1)}%</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'learning' && (
-                <div className="learning-tab">
-                  <h5>학습 경험</h5>
-                  <div className="learning-experiences">
-                    {selectedEntity.learningExperiences && selectedEntity.learningExperiences.length > 0 ? (
-                      selectedEntity.learningExperiences.slice(-10).reverse().map(experience => (
-                        <div key={experience.id} className="experience-item">
-                          <div className="experience-type">{experience.type}</div>
-                          <div className="experience-target">{experience.target}</div>
-                          <div className="experience-value">+{experience.value.toFixed(2)}</div>
-                          <div className="experience-description">{experience.description}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="no-experiences">학습 경험이 없습니다.</div>
-                    )}
-                  </div>
-
-                  <h5>스킬 수준</h5>
-                  <div className="skill-grid">
-                    {Object.entries(selectedEntity.skills).map(([skill, level]) => (
-                      <div key={skill} className="skill-item">
-                        <div className="skill-name">{getSkillName(skill)}</div>
-                        <div className="skill-level">{level.toFixed(1)}</div>
-                        <div className="skill-bar">
-                          <div 
-                            className="skill-progress" 
-                            style={{ width: `${level}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'teaching' && (
-                <div className="teaching-tab">
-                  <h5>가르치기 세션</h5>
-                  <div className="teaching-sessions">
-                    <div className="no-sessions">현재 가르치기 세션이 없습니다.</div>
-                  </div>
-
-                  <h5>지식</h5>
-                  <div className="knowledge-list">
-                    {Object.keys(selectedEntity.knowledge).length > 0 ? (
-                      Object.entries(selectedEntity.knowledge).map(([knowledgeId, value]) => (
-                        <div key={knowledgeId} className="knowledge-item">
-                          <div className="knowledge-id">{knowledgeId}</div>
-                          <div className="knowledge-value">{(value * 100).toFixed(1)}%</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="no-knowledge">획득한 지식이 없습니다.</div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'stats' && (
-                <div className="stats-tab">
-                  <h5>기본 능력치</h5>
-                  <div className="stats-grid">
-                    <div className="stat-item">
-                      <div className="stat-label">힘</div>
-                      <div className="stat-value">{selectedEntity.stats.str}</div>
-                    </div>
-                    <div className="stat-item">
-                      <div className="stat-label">민첩</div>
-                      <div className="stat-value">{selectedEntity.stats.agi}</div>
-                    </div>
-                    <div className="stat-item">
-                      <div className="stat-label">체력</div>
-                      <div className="stat-value">{selectedEntity.stats.end}</div>
-                    </div>
-                    <div className="stat-item">
-                      <div className="stat-label">지능</div>
-                      <div className="stat-value">{selectedEntity.stats.int}</div>
-                    </div>
-                    <div className="stat-item">
-                      <div className="stat-label">지각</div>
-                      <div className="stat-value">{selectedEntity.stats.per}</div>
-                    </div>
-                    <div className="stat-item">
-                      <div className="stat-label">매력</div>
-                      <div className="stat-value">{selectedEntity.stats.cha}</div>
-                    </div>
-                  </div>
-
-                  <h5>후성유전</h5>
-                  <div className="epigenetics-grid">
-                    <div className="epi-item">
-                      <div className="epi-label">생존</div>
-                      <div className="epi-value">{selectedEntity.epi.survival.toFixed(3)}</div>
-                    </div>
-                    <div className="epi-item">
-                      <div className="epi-label">번식</div>
-                      <div className="epi-value">{selectedEntity.epi.reproduction.toFixed(3)}</div>
-                    </div>
-                    <div className="epi-item">
-                      <div className="epi-label">호기심</div>
-                      <div className="epi-value">{selectedEntity.epi.curiosity.toFixed(3)}</div>
-                    </div>
-                    <div className="epi-item">
-                      <div className="epi-label">사회성</div>
-                      <div className="epi-value">{selectedEntity.epi.social.toFixed(3)}</div>
-                    </div>
-                    <div className="epi-item">
-                      <div className="epi-label">명예</div>
-                      <div className="epi-value">{selectedEntity.epi.prestige.toFixed(3)}</div>
-                    </div>
-                    <div className="epi-item">
-                      <div className="epi-label">피로</div>
-                      <div className="epi-value">{selectedEntity.epi.fatigue.toFixed(3)}</div>
-                    </div>
                   </div>
                 </div>
               )}

@@ -13,7 +13,7 @@ export type Knowledge = Record<KnowledgeId, number>; // 값 0‒1 (숙련·정�
 
 /** 로그 시스템 */
 export type LogLevel = 'info' | 'warning' | 'error' | 'success';
-export type LogCategory = 'entity' | 'material' | 'combat' | 'research' | 'system' | 'genetics' | 'learning' | 'emotion' | 'faction';
+export type LogCategory = 'entity' | 'material' | 'combat' | 'research' | 'system' | 'genetics' | 'learning' | 'emotion' | 'faction' | 'ecosystem';
 
 export interface GameLog {
   id: string;
@@ -51,6 +51,7 @@ export interface Animal extends Entity {
 
 export interface Plant {
   id: string;
+  name: string; // 이름 추가
   species: 'tree' | 'grass' | 'bush' | 'flower' | 'mushroom';
   pos: Vec2;
   growth: number; // 0-1, 성장도
@@ -100,12 +101,31 @@ export interface EmotionBubble {
 }
 
 export interface EmotionState {
-  happiness: number; // 0-1
-  fear: number; // 0-1
-  anger: number; // 0-1
-  curiosity: number; // 0-1
-  satisfaction: number; // 0-1
-  stress: number; // 0-1
+  // 기본 감정
+  happiness: number; // 0-1, 행복
+  fear: number; // 0-1, 공포
+  anger: number; // 0-1, 분노
+  curiosity: number; // 0-1, 호기심
+  satisfaction: number; // 0-1, 만족
+  stress: number; // 0-1, 스트레스
+  
+  // 확장된 감정
+  excitement: number; // 0-1, 흥미/흥분
+  sadness: number; // 0-1, 슬픔
+  anxiety: number; // 0-1, 불안
+  joy: number; // 0-1, 기쁨
+  frustration: number; // 0-1, 좌절
+  pride: number; // 0-1, 자부심
+  loneliness: number; // 0-1, 외로움
+  hope: number; // 0-1, 희망
+  despair: number; // 0-1, 절망
+  calmness: number; // 0-1, 평온
+  irritation: number; // 0-1, 짜증
+  gratitude: number; // 0-1, 감사
+  envy: number; // 0-1, 질투
+  confidence: number; // 0-1, 자신감
+  confusion: number; // 0-1, 혼란
+  determination: number; // 0-1, 의지
 }
 
 /** Entity */
@@ -142,6 +162,7 @@ export interface Entity {
     timestamp: number;
     description: string;
   }>; // 학습 경험 목록
+  parents?: string[]; // 부모 엔티티 ID 목록
 }
 
 /** Material */

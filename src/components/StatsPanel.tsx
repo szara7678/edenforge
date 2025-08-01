@@ -1,11 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { WorldState } from '../types';
+import { ChartsPanel } from './ChartsPanel';
+
+type StatsTabType = 'overview' | 'entities' | 'factions' | 'ecosystem' | 'materials' | 'charts';
 
 interface StatsPanelProps {
   worldState: WorldState;
 }
 
 export const StatsPanel: React.FC<StatsPanelProps> = ({ worldState }) => {
+  const [activeTab, setActiveTab] = useState<StatsTabType>('overview');
+  
   // 기본 통계 계산
   const totalEntities = worldState.entities.length;
   const aliveEntities = worldState.entities.filter(e => e.hp > 0).length;
@@ -88,27 +93,28 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ worldState }) => {
     biomes: worldState.biomes.length
   };
 
-  // 재료 통계
+  // 재료 통계 (동적 티어 지원)
+  const materialTiers = Array.from(new Set(worldState.materials.map(m => m.tier))).sort((a, b) => a - b);
   const materialStats = {
     total: worldState.materials.length,
-    byTier: {
-      1: worldState.materials.filter(m => m.tier === 1).length,
-      2: worldState.materials.filter(m => m.tier === 2).length,
-      3: worldState.materials.filter(m => m.tier === 3).length,
-      4: worldState.materials.filter(m => m.tier === 4).length,
-      5: worldState.materials.filter(m => m.tier === 5).length
-    }
+    byTier: materialTiers.reduce((acc, tier) => {
+      acc[tier] = worldState.materials.filter(m => m.tier === tier).length;
+      return acc;
+    }, {} as Record<number, number>),
+    topTiers: materialTiers.slice(-8) // 상위 8개 티어만
   };
 
-  return (
-    <div style={{
-      padding: '15px',
-      height: '100%',
-      overflowY: 'auto',
-      fontSize: '12px'
-    }}>
-      <h3 style={{ margin: '0 0 15px 0', color: '#4ecdc4' }}>📊 게임 통계</h3>
-      
+  const tabs = [
+    { id: 'overview', name: '개요', icon: '📊' },
+    { id: 'entities', name: '엔티티', icon: '👥' },
+    { id: 'factions', name: '파벌', icon: '⚔️' },
+    { id: 'ecosystem', name: '생태계', icon: '🌿' },
+    { id: 'materials', name: '재료', icon: '🔬' },
+    { id: 'charts', name: '차트', icon: '📈' }
+  ];
+
+  const renderOverview = () => (
+    <>
       {/* 기본 통계 */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 10px 0', color: '#4ecdc4', fontSize: '14px' }}>기본 정보</h4>
@@ -134,6 +140,40 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ worldState }) => {
         </div>
       </div>
 
+      {/* 파벌 요약 */}
+      <div style={{ marginBottom: '20px' }}>
+        <h4 style={{ margin: '0 0 10px 0', color: '#4ecdc4', fontSize: '14px' }}>파벌 요약</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ padding: '8px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
+            <div style={{ fontSize: '10px', opacity: 0.7 }}>총 파벌</div>
+            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{factionStats.total}</div>
+          </div>
+          <div style={{ padding: '8px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
+            <div style={{ fontSize: '10px', opacity: 0.7 }}>평균 멤버</div>
+            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{factionStats.avgMembers.toFixed(1)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 생태계 요약 */}
+      <div style={{ marginBottom: '20px' }}>
+        <h4 style={{ margin: '0 0 10px 0', color: '#4ecdc4', fontSize: '14px' }}>생태계 요약</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ padding: '8px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
+            <div style={{ fontSize: '10px', opacity: 0.7 }}>동물</div>
+            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{ecosystemStats.animals}</div>
+          </div>
+          <div style={{ padding: '8px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
+            <div style={{ fontSize: '10px', opacity: 0.7 }}>식물</div>
+            <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{ecosystemStats.plants}</div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderEntities = () => (
+    <>
       {/* 평균 스탯 */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 10px 0', color: '#4ecdc4', fontSize: '14px' }}>평균 스탯</h4>
@@ -203,7 +243,11 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ worldState }) => {
           </div>
         </div>
       </div>
+    </>
+  );
 
+  const renderFactions = () => (
+    <>
       {/* 파벌 통계 */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 10px 0', color: '#4ecdc4', fontSize: '14px' }}>파벌 통계</h4>
@@ -234,7 +278,11 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ worldState }) => {
           </div>
         </div>
       </div>
+    </>
+  );
 
+  const renderEcosystem = () => (
+    <>
       {/* 생태계 통계 */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 10px 0', color: '#4ecdc4', fontSize: '14px' }}>생태계 통계</h4>
@@ -257,7 +305,11 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ worldState }) => {
           </div>
         </div>
       </div>
+    </>
+  );
 
+  const renderMaterials = () => (
+    <>
       {/* 재료 통계 */}
       <div style={{ marginBottom: '20px' }}>
         <h4 style={{ margin: '0 0 10px 0', color: '#4ecdc4', fontSize: '14px' }}>재료 통계</h4>
@@ -267,26 +319,77 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ worldState }) => {
             <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{materialStats.total}</div>
           </div>
           <div style={{ padding: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
-            <div style={{ fontSize: '10px', opacity: 0.7 }}>티어 1</div>
-            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{materialStats.byTier[1]}</div>
-          </div>
-          <div style={{ padding: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
-            <div style={{ fontSize: '10px', opacity: 0.7 }}>티어 2</div>
-            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{materialStats.byTier[2]}</div>
-          </div>
-          <div style={{ padding: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
-            <div style={{ fontSize: '10px', opacity: 0.7 }}>티어 3</div>
-            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{materialStats.byTier[3]}</div>
-          </div>
-          <div style={{ padding: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
-            <div style={{ fontSize: '10px', opacity: 0.7 }}>티어 4</div>
-            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{materialStats.byTier[4]}</div>
-          </div>
-          <div style={{ padding: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
-            <div style={{ fontSize: '10px', opacity: 0.7 }}>티어 5</div>
-            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{materialStats.byTier[5]}</div>
+            <div style={{ fontSize: '10px', opacity: 0.7 }}>총 티어</div>
+            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{materialTiers.length}</div>
           </div>
         </div>
+      </div>
+
+      {/* 상위 8개 티어 통계 */}
+      <div style={{ marginBottom: '20px' }}>
+        <h4 style={{ margin: '0 0 10px 0', color: '#4ecdc4', fontSize: '14px' }}>상위 티어별 재료</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          {materialStats.topTiers.map(tier => (
+            <div key={tier} style={{ padding: '6px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
+              <div style={{ fontSize: '10px', opacity: 0.7 }}>티어 {tier}</div>
+              <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{materialStats.byTier[tier] || 0}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
+  const renderCharts = () => (
+    <ChartsPanel worldState={worldState} />
+  );
+
+  return (
+    <div style={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      fontSize: '12px'
+    }}>
+      <h3 style={{ margin: '0 0 15px 0', color: '#4ecdc4', padding: '0 15px' }}>📊 게임 통계</h3>
+      
+      {/* 탭 버튼 */}
+      <div style={{
+        display: 'flex',
+        borderBottom: '1px solid #333',
+        padding: '0 15px'
+      }}>
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as StatsTabType)}
+            style={{
+              flex: 1,
+              padding: '10px',
+              backgroundColor: activeTab === tab.id ? '#4ecdc4' : 'transparent',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '11px'
+            }}
+          >
+            {tab.icon} {tab.name}
+          </button>
+        ))}
+      </div>
+      
+      {/* 탭 콘텐츠 */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '15px'
+      }}>
+        {activeTab === 'overview' && renderOverview()}
+        {activeTab === 'entities' && renderEntities()}
+        {activeTab === 'factions' && renderFactions()}
+        {activeTab === 'ecosystem' && renderEcosystem()}
+        {activeTab === 'materials' && renderMaterials()}
+        {activeTab === 'charts' && renderCharts()}
       </div>
     </div>
   );

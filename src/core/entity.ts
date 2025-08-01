@@ -69,6 +69,8 @@ export class EntitySystem {
   private checkSurvival(entity: Entity): boolean {
     // 사망 조건
     if (entity.hp <= 0 || entity.hunger >= 100 || entity.age >= 100) {
+      // 사망 로그
+      this.logger.warning('entity', `${entity.name}이(가) 사망했습니다. (HP: ${entity.hp.toFixed(1)}, 배고픔: ${entity.hunger.toFixed(1)}, 나이: ${entity.age.toFixed(1)})`, entity.id, entity.name);
       return false;
     }
     return true;

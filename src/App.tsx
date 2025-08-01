@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { World } from './core/world';
 import CanvasLayer from './components/CanvasLayer';
-import HUD from './components/HUD.tsx';
 import { TabManager } from './components/TabManager';
+import { FloatingPanel } from './components/FloatingPanel';
+import { GameInfoPanel } from './components/GameInfoPanel';
+import { BubbleFilterPanel, BubbleFilters } from './components/BubbleFilterPanel';
 import './styles/App.css';
 
 function App() {
@@ -10,6 +12,22 @@ function App() {
   const [gameState, setGameState] = useState(world.getState());
   const [isRunning, setIsRunning] = useState(true);
   const [speed, setSpeed] = useState(0.2); // 기본 속도를 0.2로 설정
+  const [showGameInfo, setShowGameInfo] = useState(true);
+  const [showBubbleFilter, setShowBubbleFilter] = useState(false);
+  const [bubbleFilters, setBubbleFilters] = useState<BubbleFilters>({
+    showEntityBubbles: true,
+    showFactionBubbles: true,
+    showMaterialBubbles: true,
+    showAnimalBubbles: true,
+    showPlantBubbles: true,
+    showEmotions: true,
+    showActions: true,
+    showThoughts: true,
+    showSpeech: true,
+    selectedEntities: [],
+    selectedFactions: [],
+    selectedCategories: []
+  });
   const animationRef = useRef<number>();
 
   useEffect(() => {
@@ -49,33 +67,82 @@ function App() {
   return (
     <div className="App">
       <CanvasLayer worldState={gameState} />
-      <HUD 
-        entityCount={gameState.entities.length}
-        tick={gameState.tick}
-        isRunning={isRunning}
-        speed={speed}
-        onTogglePause={togglePause}
-        onChangeSpeed={changeSpeed}
-      />
       <TabManager gameState={gameState} />
       
-      {/* 디버그 정보 */}
+      {/* 게임 정보 플로팅 패널 */}
+      {showGameInfo && (
+        <FloatingPanel
+          title="게임 정보"
+          defaultPosition={{ x: 10, y: 10 }}
+          defaultSize={{ width: 350, height: 300 }}
+          onClose={() => setShowGameInfo(false)}
+        >
+          <GameInfoPanel
+            worldState={gameState}
+            isRunning={isRunning}
+            speed={speed}
+            onTogglePause={togglePause}
+            onChangeSpeed={changeSpeed}
+          />
+        </FloatingPanel>
+      )}
+
+      {/* 말풍선 필터 플로팅 패널 */}
+      {showBubbleFilter && (
+        <FloatingPanel
+          title="말풍선 필터"
+          defaultPosition={{ x: 270, y: 10 }}
+          defaultSize={{ width: 280, height: 400 }}
+          onClose={() => setShowBubbleFilter(false)}
+        >
+          <BubbleFilterPanel
+            worldState={gameState}
+            onFilterChange={setBubbleFilters}
+          />
+        </FloatingPanel>
+      )}
+
+      {/* 플로팅 패널 토글 버튼들 */}
       <div style={{
         position: 'absolute',
-        top: 100,
-        left: 10,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        color: 'white',
-        padding: '10px',
-        fontSize: '12px',
-        zIndex: 1000
+        bottom: '20px',
+        right: '20px',
+        zIndex: 1001,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
       }}>
-        <div>로그 수: {gameState.logs.length}</div>
-        <div>재료 수: {gameState.materials.length}</div>
-        <div>엔티티 수: {gameState.entities.length}</div>
-        <div>파벌 수: {gameState.factions.length}</div>
-        <div>동물 수: {gameState.animals.length}</div>
-        <div>식물 수: {gameState.plants.length}</div>
+        <button
+          onClick={() => setShowGameInfo(!showGameInfo)}
+          style={{
+            backgroundColor: showGameInfo ? '#4ecdc4' : '#333',
+            color: 'white',
+            border: 'none',
+            padding: '8px 12px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }}
+        >
+          {showGameInfo ? '게임 정보 숨기기' : '게임 정보 보기'}
+        </button>
+        
+        <button
+          onClick={() => setShowBubbleFilter(!showBubbleFilter)}
+          style={{
+            backgroundColor: showBubbleFilter ? '#4ecdc4' : '#333',
+            color: 'white',
+            border: 'none',
+            padding: '8px 12px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }}
+        >
+          {showBubbleFilter ? '말풍선 필터 숨기기' : '말풍선 필터 보기'}
+        </button>
       </div>
     </div>
   );
