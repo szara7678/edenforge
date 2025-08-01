@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -26,9 +35,14 @@ jobs:
     - name: Build
       run: npm run build
       
+    - name: Add SPA routing files
+      run: |
+        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>EdenForge</title><script type="text/javascript">var pathSegmentsToKeep = 1; var l = window.location; l.replace(l.protocol + "//" + l.hostname + (l.port ? ":" + l.port : "") + l.pathname.split("/").slice(0, 1 + pathSegmentsToKeep).join("/") + "/?/" + l.pathname.slice(1).split("/").slice(pathSegmentsToKeep).join("/").replace(/&/g, "~and~") + (l.search ? "&" + l.search.slice(1).replace(/&/g, "~and~") : "") + l.hash);</script></head><body></body></html>' > dist/404.html
+      
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       if: github.ref == 'refs/heads/main'
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist 
+        publish_dir: ./dist
+        force_orphan: true 

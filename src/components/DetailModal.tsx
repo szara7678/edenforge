@@ -77,7 +77,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
             <span className="value">{entity.stats.cha.toFixed(2)}</span>
           </div>
         </div>
-      </div>
+        </div>
 
       <div className="detail-section">
         <h3>스킬</h3>
@@ -86,10 +86,10 @@ export const DetailModal: React.FC<DetailModalProps> = ({
             <div key={skill} className="detail-item">
               <span className="label">{skill}:</span>
               <span className="value">{level.toFixed(2)}</span>
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
       <div className="detail-section">
         <h3>유전자</h3>
@@ -100,8 +100,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               <span className="value">{value.toFixed(2)}</span>
             </div>
           ))}
-        </div>
-      </div>
+              </div>
+              </div>
 
       <div className="detail-section">
         <h3>후성유전</h3>
@@ -112,8 +112,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               <span className="value">{value.toFixed(2)}</span>
             </div>
           ))}
-        </div>
-      </div>
+            </div>
+          </div>
 
       {entity.inventory && (
         <div className="detail-section">
@@ -128,8 +128,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           </div>
         </div>
       )}
-    </div>
-  );
+      </div>
+    );
 
   const renderMaterialDetails = (material: Material) => (
     <div className="modal-content">
@@ -146,7 +146,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
             <span className="value">{material.id}</span>
           </div>
         </div>
-      </div>
+            </div>
 
       <div className="detail-section">
         <h3>속성</h3>
@@ -157,8 +157,8 @@ export const DetailModal: React.FC<DetailModalProps> = ({
               <span className="value">{value.toFixed(2)}</span>
             </div>
           ))}
-        </div>
-      </div>
+            </div>
+            </div>
 
       {material.parents && (
         <div className="detail-section">
@@ -199,7 +199,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="detail-item">
             <span className="label">군사력:</span>
             <span className="value">{faction.stats.military}</span>
-          </div>
+              </div>
           <div className="detail-item">
             <span className="label">경제력:</span>
             <span className="value">{faction.stats.economy}</span>
@@ -207,9 +207,9 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="detail-item">
             <span className="label">기술력:</span>
             <span className="value">{faction.stats.technology}</span>
+            </div>
           </div>
         </div>
-      </div>
 
       <div className="detail-section">
         <h3>문화</h3>
@@ -221,7 +221,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="detail-item">
             <span className="label">협력성:</span>
             <span className="value">{faction.culture.cooperation.toFixed(2)}</span>
-          </div>
+              </div>
           <div className="detail-item">
             <span className="label">혁신성:</span>
             <span className="value">{faction.culture.innovation.toFixed(2)}</span>
@@ -229,9 +229,9 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="detail-item">
             <span className="label">전통성:</span>
             <span className="value">{faction.culture.tradition.toFixed(2)}</span>
+            </div>
           </div>
         </div>
-      </div>
 
       <div className="detail-section">
         <h3>자원</h3>
@@ -240,9 +240,9 @@ export const DetailModal: React.FC<DetailModalProps> = ({
             <div key={resource} className="detail-item">
               <span className="label">{resource}:</span>
               <span className="value">{amount}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -290,11 +290,11 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="detail-item">
             <span className="label">스태미나:</span>
             <span className="value">{Math.floor(animal.stamina)}</span>
-          </div>
+                </div>
           <div className="detail-item">
             <span className="label">배고픔:</span>
             <span className="value">{Math.floor(animal.hunger)}</span>
-          </div>
+            </div>
           <div className="detail-item">
             <span className="label">나이:</span>
             <span className="value">{Math.floor(animal.age)}</span>
@@ -325,7 +325,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="detail-item">
             <span className="label">분산력:</span>
             <span className="value">{plant.seedDispersion.toFixed(2)}</span>
-          </div>
+                </div>
           <div className="detail-item">
             <span className="label">크기:</span>
             <span className="value">{plant.size.toFixed(2)}</span>
@@ -333,9 +333,9 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="detail-item">
             <span className="label">수확량:</span>
             <span className="value">{plant.yield.toFixed(2)}</span>
+            </div>
           </div>
         </div>
-      </div>
 
       <div className="detail-section">
         <h3>상태</h3>
@@ -347,7 +347,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="detail-item">
             <span className="label">나이:</span>
             <span className="value">{Math.floor(plant.age)}</span>
-          </div>
+            </div>
           <div className="detail-item">
             <span className="label">성숙:</span>
             <span className="value">{plant.isMature ? '예' : '아니오'}</span>
@@ -355,11 +355,11 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           <div className="detail-item">
             <span className="label">사망:</span>
             <span className="value">{plant.isDead ? '예' : '아니오'}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 
   const renderContent = () => {
     switch (type) {
@@ -389,4 +389,4 @@ export const DetailModal: React.FC<DetailModalProps> = ({
       </div>
     </div>
   );
-}; 
+};

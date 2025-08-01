@@ -95,6 +95,8 @@
 58. **GitHub Pages 배포 완료**: 자동 배포 시스템 구축, TypeScript 컴파일 오류 수정, 라이브 데모 URL 제공
 59. **엔티티 생명주기 로그 시스템 대폭 개선**: 엔티티 탄생/사망/제거에 대한 상세한 로그 추가, 사망 원인별 분류 (HP 부족, 극심한 배고픔, 노화, 전투), 전투 사망 시 공격자/무기/데미지 정보 포함, 동물/식물 생명주기 로그도 개선
 60. **오류 수정 및 안정성 개선**: entity.ts의 undefined 오류 수정, ChartsPanel의 함수 초기화 순서 문제 해결, 안전한 배열 접근 처리 추가
+61. **GitHub Pages SPA 라우팅 수정**: 404.html 파일 추가, SPA 라우팅 스크립트 구현, GitHub Actions 워크플로우 업데이트
+62. **GitHub Pages 권한 및 배포 문제 해결**: GitHub Actions 권한 설정 추가, force_orphan 옵션 추가, SPA 라우팅 파일 재생성
 
 ### 다음 단계
 - Web Worker 마이그레이션

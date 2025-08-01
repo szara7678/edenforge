@@ -332,14 +332,28 @@ const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState, bubbleFilters }) 
     setIsDragging(false);
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setMapView(prev => ({
-      ...prev,
-      scale: Math.max(0.5, Math.min(3, prev.scale * delta))
-    }));
-  };
+
+
+  // wheel 이벤트 리스너를 직접 추가하여 preventDefault 문제 해결
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleWheelDirect = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      setMapView(prev => ({
+        ...prev,
+        scale: Math.max(0.5, Math.min(3, prev.scale * delta))
+      }));
+    };
+
+    canvas.addEventListener('wheel', handleWheelDirect, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('wheel', handleWheelDirect);
+    };
+  }, []);
 
   const zoomIn = () => {
     setMapView(prev => ({
@@ -366,7 +380,6 @@ const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState, bubbleFilters }) 
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onWheel={handleWheel}
         style={{
           position: 'absolute',
           top: 0,
