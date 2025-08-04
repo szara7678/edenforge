@@ -99,6 +99,41 @@ npm run dev
 **예상 문제**: 복잡한 시스템에서 타입 오류
 **해결 방안**: 
 
+### 5. TypeScript 컴파일 오류 (2025-01-XX)
+**문제**: `src/core/faction.ts:45:11 - error TS6133: 'combatSystem' is declared but its value is never read.`
+```
+45   private combatSystem: CombatSystem;
+```
+
+**해결**: 사용되지 않는 `combatSystem` 변수와 관련 코드 제거
+```typescript
+// 제거된 코드
+import { CombatSystem } from './combat';
+private combatSystem: CombatSystem;
+this.combatSystem = new CombatSystem(logger);
+```
+
+**원인**: 파벌 시스템에서 전투 시스템을 분리했지만 관련 변수가 남아있었음
+
+**결과**: GitHub Pages 배포 성공, 빌드 오류 해결
+
+### 6. GitHub Pages 404 오류 (2025-01-XX)
+**문제**: GitHub Pages에서 CSS/JS 파일을 찾을 수 없는 404 오류
+```
+Failed to load resource: the server responded with a status of 404
+EdenForge/assets/index-478c9513.js:1 Failed to load resource
+EdenForge/assets/index-8a4302d0.css:1 Failed to load resource
+```
+
+**해결**: 
+1. 빌드 캐시 정리: `Remove-Item -Recurse -Force dist`
+2. vite.config.ts 빌드 설정 최적화
+3. 브라우저 강력 새로고침 (Ctrl+F5)
+
+**원인**: Vite 빌드 캐시와 브라우저 캐시 충돌
+
+**결과**: GitHub Pages 정상 작동, 라이브 데모 접속 가능
+
 ### 5. Vite HMR 구문 오류
 **문제**: `src/core/faction.ts:272:65` 에서 "Expected ")" but found "{" 오류
 ```

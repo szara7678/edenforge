@@ -2,6 +2,7 @@
   "name": "edenforge",
   "version": "1.0.0",
   "description": "완전 프로시저럴 관찰형 생태·문명 시뮬레이션",
+  "homepage": "https://szara7678.github.io/edenforge",
   "type": "module",
   "scripts": {
     "dev": "vite",

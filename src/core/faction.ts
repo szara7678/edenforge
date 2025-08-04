@@ -2,7 +2,7 @@ import { Entity, Vec2 } from '../types';
 import { RNG } from './utils';
 import { Logger } from './utils/logger';
 import { FactionNameGenerator } from './utils/factionNameGenerator';
-import { CombatSystem } from './combat';
+
 
 export interface Faction {
   id: string;
@@ -42,7 +42,6 @@ export class FactionSystem {
   private logger: Logger;
   private rng: RNG;
   private nameGenerator: FactionNameGenerator;
-  private combatSystem: CombatSystem;
   private factions: Map<string, Faction> = new Map();
   private relations: Map<string, FactionRelation> = new Map();
 
@@ -50,7 +49,6 @@ export class FactionSystem {
     this.logger = logger;
     this.rng = new RNG();
     this.nameGenerator = new FactionNameGenerator();
-    this.combatSystem = new CombatSystem(logger);
   }
 
   // 파벌 생성
