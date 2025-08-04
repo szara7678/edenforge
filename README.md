@@ -10,7 +10,7 @@
 
 > 🚀 **배포 완료!** GitHub Pages를 통해 자동으로 배포됩니다.
 > 
-> - **URL**: https://insukim.github.io/EdenForge/
+> - **URL**: https://szara7678.github.io/edenforge/
 > - **배포 브랜치**: `gh-pages`
 > - **자동 배포**: `main` 브랜치에 푸시할 때마다 자동 배포
 > - **SPA 라우팅**: 404.html을 통한 SPA 지원 추가
