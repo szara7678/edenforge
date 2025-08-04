@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { World } from './core/world';
-import { WorldState } from './types';
+import { WorldState, Entity, Animal, Plant, Material, Faction } from './types';
 import { parameterManager } from './parameters';
 import CanvasLayer from './components/CanvasLayer';
 import { TabManager } from './components/TabManager';
@@ -38,8 +38,16 @@ function App() {
     if (isInitialized) return;
     
     // 파라미터 시스템 초기화
+    console.log('App: 파라미터 초기화 시작');
+    
     parameterManager.loadParameters();
-    parameterManager.resetToDefaults();
+    
+    // 저장된 파라미터가 없으면 기본값 로드
+    if (!localStorage.getItem('edenforge_parameters')) {
+      console.log('App: 기본값 로드 및 저장');
+      parameterManager.resetToDefaults();
+      parameterManager.saveParameters(); // 기본값 저장
+    }
     
     // 초기 월드 생성 (한 번만 실행)
     const initialHumanCount = parameterManager.getParameter('world', 'initialHumanCount');
@@ -112,10 +120,33 @@ function App() {
   const newGame = () => {
     try {
       const newWorld = new World();
-      newWorld.generatePrimitives(24);
+      
+      // 파라미터에서 초기 인간 수 가져오기
+      const initialHumanCount = parameterManager.getParameter('world', 'initialHumanCount');
+      console.log('새 게임 시작 - 초기 인간 수:', initialHumanCount);
+      
+      // 엔티티 생성
+      newWorld.generatePrimitives(initialHumanCount);
+      
+      // 생성된 상태 가져오기
+      const newGameState = newWorld.getState();
+      console.log('새 게임 상태:', {
+        entities: newGameState.entities.length,
+        animals: newGameState.animals.length,
+        plants: newGameState.plants.length
+      });
+      
+      // 엔티티들의 초기 상태를 더 안전하게 설정
+      newGameState.entities.forEach(entity => {
+        // 초기 상태를 최대값으로 설정하여 첫 번째 tick에서 사망하지 않도록 함
+        entity.hp = Math.max(entity.hp, 80);
+        entity.stamina = Math.max(entity.stamina, 80);
+        entity.hunger = Math.min(entity.hunger, 20);
+        entity.age = Math.min(entity.age, 10);
+      });
       
       setWorld(newWorld);
-      setGameState(newWorld.getState());
+      setGameState(newGameState);
       setIsRunning(true);
       
       console.log('새 게임이 시작되었습니다.');
@@ -140,6 +171,107 @@ function App() {
     }
   };
 
+  // 데이터 편집 패널용 업데이트 함수들
+  const handleEntityUpdate = (entity: Entity) => {
+    const updatedEntities = gameState.entities.map(e => 
+      e.id === entity.id ? entity : e
+    );
+    const newGameState = { ...gameState, entities: updatedEntities };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('엔티티 업데이트됨:', entity.name);
+  };
+
+  const handleEntityCreate = (entity: Entity) => {
+    const newGameState = { 
+      ...gameState, 
+      entities: [...gameState.entities, entity] 
+    };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('엔티티 생성됨:', entity.name);
+  };
+
+  const handleAnimalUpdate = (animal: Animal) => {
+    const updatedAnimals = gameState.animals.map(a => 
+      a.id === animal.id ? animal : a
+    );
+    const newGameState = { ...gameState, animals: updatedAnimals };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('동물 업데이트됨:', animal.name);
+  };
+
+  const handleAnimalCreate = (animal: Animal) => {
+    const newGameState = { 
+      ...gameState, 
+      animals: [...gameState.animals, animal] 
+    };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('동물 생성됨:', animal.name);
+  };
+
+  const handlePlantUpdate = (plant: Plant) => {
+    const updatedPlants = gameState.plants.map(p => 
+      p.id === plant.id ? plant : p
+    );
+    const newGameState = { ...gameState, plants: updatedPlants };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('식물 업데이트됨:', plant.name);
+  };
+
+  const handlePlantCreate = (plant: Plant) => {
+    const newGameState = { 
+      ...gameState, 
+      plants: [...gameState.plants, plant] 
+    };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('식물 생성됨:', plant.name);
+  };
+
+  const handleMaterialUpdate = (material: Material) => {
+    const updatedMaterials = gameState.materials.map(m => 
+      m.id === material.id ? material : m
+    );
+    const newGameState = { ...gameState, materials: updatedMaterials };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('재료 업데이트됨:', material.name);
+  };
+
+  const handleMaterialCreate = (material: Material) => {
+    const newGameState = { 
+      ...gameState, 
+      materials: [...gameState.materials, material] 
+    };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('재료 생성됨:', material.name);
+  };
+
+  const handleFactionUpdate = (faction: Faction) => {
+    const updatedFactions = gameState.factions.map(f => 
+      f.id === faction.id ? faction : f
+    );
+    const newGameState = { ...gameState, factions: updatedFactions };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('파벌 업데이트됨:', faction.name);
+  };
+
+  const handleFactionCreate = (faction: Faction) => {
+    const newGameState = { 
+      ...gameState, 
+      factions: [...gameState.factions, faction] 
+    };
+    world.loadState(newGameState);
+    setGameState(newGameState);
+    console.log('파벌 생성됨:', faction.name);
+  };
+
   return (
     <div className="App">
       <CanvasLayer worldState={gameState} bubbleFilters={bubbleFilters} />
@@ -149,6 +281,16 @@ function App() {
         onLoadGame={loadGame}
         onSaveGame={saveGame}
         onResetSettings={resetSettings}
+        onEntityUpdate={handleEntityUpdate}
+        onEntityCreate={handleEntityCreate}
+        onAnimalUpdate={handleAnimalUpdate}
+        onAnimalCreate={handleAnimalCreate}
+        onPlantUpdate={handlePlantUpdate}
+        onPlantCreate={handlePlantCreate}
+        onMaterialUpdate={handleMaterialUpdate}
+        onMaterialCreate={handleMaterialCreate}
+        onFactionUpdate={handleFactionUpdate}
+        onFactionCreate={handleFactionCreate}
       />
       
       {/* 게임 정보 플로팅 패널 */}

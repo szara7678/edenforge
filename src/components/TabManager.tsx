@@ -19,6 +19,16 @@ interface TabManagerProps {
   onLoadGame?: (savedState: WorldState) => void;
   onSaveGame?: () => void;
   onResetSettings?: () => void;
+  onEntityUpdate?: (entity: Entity) => void;
+  onEntityCreate?: (entity: Entity) => void;
+  onAnimalUpdate?: (animal: Animal) => void;
+  onAnimalCreate?: (animal: Animal) => void;
+  onPlantUpdate?: (plant: Plant) => void;
+  onPlantCreate?: (plant: Plant) => void;
+  onMaterialUpdate?: (material: Material) => void;
+  onMaterialCreate?: (material: Material) => void;
+  onFactionUpdate?: (faction: Faction) => void;
+  onFactionCreate?: (faction: Faction) => void;
 }
 
 
@@ -28,7 +38,17 @@ export const TabManager: React.FC<TabManagerProps> = ({
   onNewGame, 
   onLoadGame, 
   onSaveGame, 
-  onResetSettings 
+  onResetSettings,
+  onEntityUpdate,
+  onEntityCreate,
+  onAnimalUpdate,
+  onAnimalCreate,
+  onPlantUpdate,
+  onPlantCreate,
+  onMaterialUpdate,
+  onMaterialCreate,
+  onFactionUpdate,
+  onFactionCreate
 }) => {
   const [panels, setPanels] = useState<Record<string, PanelState>>({
     unified: { isOpen: false, position: { x: 10, y: 10 }, size: { width: 500, height: 500 } },
@@ -242,46 +262,16 @@ export const TabManager: React.FC<TabManagerProps> = ({
           <ResizablePanel title="데이터 편집 패널" {...commonProps}>
             <DataEditorPanel 
               worldState={gameState}
-              onEntityUpdate={(entity) => {
-                // 엔티티 업데이트 로직
-                console.log('엔티티 업데이트:', entity);
-              }}
-              onAnimalUpdate={(animal) => {
-                // 동물 업데이트 로직
-                console.log('동물 업데이트:', animal);
-              }}
-              onPlantUpdate={(plant) => {
-                // 식물 업데이트 로직
-                console.log('식물 업데이트:', plant);
-              }}
-              onMaterialUpdate={(material) => {
-                // 재료 업데이트 로직
-                console.log('재료 업데이트:', material);
-              }}
-              onFactionUpdate={(faction) => {
-                // 파벌 업데이트 로직
-                console.log('파벌 업데이트:', faction);
-              }}
-              onEntityCreate={(entity) => {
-                // 엔티티 생성 로직
-                console.log('엔티티 생성:', entity);
-              }}
-              onAnimalCreate={(animal) => {
-                // 동물 생성 로직
-                console.log('동물 생성:', animal);
-              }}
-              onPlantCreate={(plant) => {
-                // 식물 생성 로직
-                console.log('식물 생성:', plant);
-              }}
-              onMaterialCreate={(material) => {
-                // 재료 생성 로직
-                console.log('재료 생성:', material);
-              }}
-              onFactionCreate={(faction) => {
-                // 파벌 생성 로직
-                console.log('파벌 생성:', faction);
-              }}
+              onEntityUpdate={onEntityUpdate}
+              onAnimalUpdate={onAnimalUpdate}
+              onPlantUpdate={onPlantUpdate}
+              onMaterialUpdate={onMaterialUpdate}
+              onFactionUpdate={onFactionUpdate}
+              onEntityCreate={onEntityCreate}
+              onAnimalCreate={onAnimalCreate}
+              onPlantCreate={onPlantCreate}
+              onMaterialCreate={onMaterialCreate}
+              onFactionCreate={onFactionCreate}
             />
           </ResizablePanel>
         );

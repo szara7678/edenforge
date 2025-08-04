@@ -100,8 +100,26 @@ const ParameterPanel: React.FC<ParameterPanelProps> = ({ onClose }) => {
 
   useEffect(() => {
     // 파라미터 로드
+    console.log('ParameterPanel: 파라미터 로드 시작');
     parameterManager.loadParameters();
-    setParameters(parameterManager.getAllParameters());
+    
+    // 파라미터가 비어있으면 기본값 로드
+    const allParams = parameterManager.getAllParameters();
+    console.log('ParameterPanel: 로드된 파라미터:', allParams);
+    
+    if (!allParams.entity.parameters || Object.keys(allParams.entity.parameters).length === 0) {
+      console.log('ParameterPanel: 파라미터가 비어있음, 기본값 로드');
+      parameterManager.resetToDefaults();
+      
+      // 기본값 로드 후 다시 파라미터 가져오기
+      setTimeout(() => {
+        const updatedParams = parameterManager.getAllParameters();
+        console.log('ParameterPanel: 기본값 로드 후 파라미터:', updatedParams);
+        setParameters(updatedParams);
+      }, 100);
+    } else {
+      setParameters(allParams);
+    }
   }, []);
 
   const handleParameterChange = (category: keyof ParameterSet, name: string, value: number) => {

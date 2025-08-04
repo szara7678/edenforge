@@ -128,12 +128,24 @@ export function calculateStim(entity: any): Record<StimKey, number> {
   const curiosityMaxStim = parameterManager.getParameter('entity', 'curiosityMaxStim');
   const curiosityStim = Math.min(curiosityMaxStim, 0.3 + intelligenceFactor * curiosityIntelligenceBonus + analyzeSkillFactor * curiosityAnalyzeBonus);
   
+  // 번식 욕구 계산 - 나이와 사기, 스태미나에 따라 결정
+  const ageFactor = entity.age >= 20 && entity.age <= 80 ? 0.8 : 0.1;
+  const moraleFactor = (entity.morale || 50) / 100;
+  const staminaFactor = entity.stamina / 100;
+  const reproductionStim = ageFactor * moraleFactor * staminaFactor * 0.6;
+  
+  // 사회적 욕구 - 사기와 스태미나에 따라 결정
+  const socialStim = Math.min(0.8, moraleFactor * staminaFactor * 0.7);
+  
+  // 명예욕 - 사기와 나이에 따라 결정
+  const prestigeStim = Math.min(0.6, moraleFactor * (entity.age / 100) * 0.5);
+  
   const stim: Record<StimKey, number> = {
     survival: survivalStim,
-    reproduction: 0, // 나중에 구현
+    reproduction: reproductionStim,
     curiosity: curiosityStim,
-    social: 0.2,
-    prestige: 0.1,
+    social: socialStim,
+    prestige: prestigeStim,
     fatigue: 1 - entity.stamina / 100
   };
   return stim;

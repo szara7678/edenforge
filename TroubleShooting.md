@@ -280,11 +280,116 @@ console.log('실제 생성된 엔티티 수:', this.state.entities.length);
 
 **결과**: 초기 엔티티 생성 과정 추적 가능
 **위치**: `src/App.tsx`, `src/core/world.ts`
-- 타입 가드 함수 사용
 
----
+### 11. 데이터 편집 패널 생성 기능 수정
+**문제**: 데이터 편집 패널에서 엔티티/동물/식물/재료/파벌 추가 시 실제로 생성되지 않음
+**해결**: App.tsx에서 실제 업데이트 함수들을 TabManager에 전달
+```typescript
+// App.tsx에 데이터 업데이트 함수들 추가
+const handleEntityCreate = (entity: Entity) => {
+  const newGameState = { 
+    ...gameState, 
+    entities: [...gameState.entities, entity] 
+  };
+  world.loadState(newGameState);
+  setGameState(newGameState);
+};
 
-## 성능 모니터링 체크리스트
+// TabManager에 props 추가
+interface TabManagerProps {
+  // ... 기존 props
+  onEntityCreate?: (entity: Entity) => void;
+  onAnimalCreate?: (animal: Animal) => void;
+  // ... 기타 생성 함수들
+}
+
+// DataEditorPanel에 실제 함수 전달
+<DataEditorPanel 
+  onEntityCreate={onEntityCreate}
+  onAnimalCreate={onAnimalCreate}
+  // ... 기타 props
+/>
+```
+
+**결과**: 데이터 편집 패널에서 모든 항목 생성/수정 가능
+**위치**: `src/App.tsx`, `src/components/TabManager.tsx`, `src/components/DataEditorPanel.tsx`
+
+### 12. 새 게임 시작 시 파라미터 연동 문제 수정
+**문제**: 새 게임 시작 시 파라미터로 설정한 초기 인간 수가 반영되지 않음
+**해결**: newGame 함수에서 파라미터 사용 및 초기화 로직 개선
+```typescript
+// newGame 함수 수정
+const newGame = () => {
+  const newWorld = new World();
+  
+  // 파라미터에서 초기 인간 수 가져오기
+  const initialHumanCount = parameterManager.getParameter('world', 'initialHumanCount');
+  console.log('새 게임 시작 - 초기 인간 수:', initialHumanCount);
+  
+  newWorld.generatePrimitives(initialHumanCount);
+  // ...
+};
+
+// 초기화 로직 개선 - 저장된 파라미터 우선 사용
+parameterManager.loadParameters();
+
+// 저장된 파라미터가 없으면 기본값 로드
+if (!localStorage.getItem('edenforge_parameters')) {
+  parameterManager.resetToDefaults();
+  parameterManager.saveParameters();
+}
+```
+
+**결과**: 파라미터 패널에서 설정한 초기 인간 수가 새 게임에 정상 반영
+**위치**: `src/App.tsx`
+
+### 13. 파라미터 패널 내용 표시 문제 수정
+**문제**: 파라미터 편집 패널에서 파라미터 내용이 나타나지 않고 "검색 결과가 없습니다" 표시
+**해결**: 순환 참조 문제 해결 및 파라미터 초기화 로직 개선
+```typescript
+// 순환 참조 방지를 위해 각 파라미터 파일에서 ParameterValue 타입 직접 정의
+export interface ParameterValue {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  description: string;
+  category: string;
+}
+
+// ParameterPanel에서 기본값 로드 후 파라미터 다시 가져오기
+setTimeout(() => {
+  const updatedParams = parameterManager.getAllParameters();
+  setParameters(updatedParams);
+}, 100);
+```
+
+**결과**: 파라미터 패널에서 모든 파라미터 정상 표시
+**위치**: `src/parameters/*.ts`, `src/components/ParameterPanel.tsx`
+
+### 14. 새 게임 시작 후 엔티티 초기화 문제 수정
+**문제**: 새 게임 시작 후 "새 게임이 시작되었습니다" 로그와 함께 엔티티들이 다시 초기화되거나 사망하는 문제
+**해결**: 엔티티 초기 상태 보호 및 스탯 감소율 완화
+```typescript
+// 새 게임 시작 시 엔티티 초기 상태 보호
+newGameState.entities.forEach(entity => {
+  entity.hp = Math.max(entity.hp, 80);
+  entity.stamina = Math.max(entity.stamina, 80);
+  entity.hunger = Math.min(entity.hunger, 20);
+  entity.age = Math.min(entity.age, 10);
+});
+
+// 스탯 감소율 완화
+entity.stamina = Math.max(0, entity.stamina - (staminaDecreaseRate * 0.5));
+entity.hunger = Math.min(100, entity.hunger + (hungerIncreaseRate * 0.5));
+entity.age += (ageIncreaseRate * 0.5);
+entity.hp = Math.max(0, entity.hp - 0.02); // HP 감소율도 줄임
+```
+
+**결과**: 새 게임 시작 후 엔티티들이 안정적으로 생존
+**위치**: `src/App.tsx`, `src/core/entity.ts`
+  
+  ## 성능 모니터링 체크리스트
 
 - [ ] FPS 60 이상 유지
 - [ ] 엔티티 5000개 이상 처리 가능

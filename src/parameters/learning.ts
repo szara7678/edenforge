@@ -1,4 +1,12 @@
-import { ParameterValue } from './index';
+// ParameterValue 타입 정의 (순환 참조 방지)
+export interface ParameterValue {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  description: string;
+  category: string;
+}
 
 // 학습 시스템 기본 파라미터
 export const LEARNING_PARAMETERS: Record<string, ParameterValue> = {

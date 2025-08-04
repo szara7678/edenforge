@@ -1,4 +1,12 @@
-import { ParameterValue } from './index';
+// ParameterValue 타입 정의 (순환 참조 방지)
+export interface ParameterValue {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  description: string;
+  category: string;
+}
 
 // 엔티티 기본 파라미터
 export const ENTITY_PARAMETERS: Record<string, ParameterValue> = {
@@ -374,6 +382,158 @@ export const ENTITY_PARAMETERS: Record<string, ParameterValue> = {
     step: 0.05,
     description: 'Gather 행동 우선 확률',
     category: '행동 결정'
+  },
+
+  // 번식 관련
+  reproductionBaseChance: {
+    value: 0.1,
+    min: 0.05,
+    max: 0.3,
+    step: 0.02,
+    description: '번식 기본 확률',
+    category: '번식'
+  },
+  reproductionDesireMultiplier: {
+    value: 0.3,
+    min: 0.1,
+    max: 0.5,
+    step: 0.05,
+    description: '번식 욕구 승수',
+    category: '번식'
+  },
+  reproductionMaxChance: {
+    value: 0.4,
+    min: 0.2,
+    max: 0.6,
+    step: 0.05,
+    description: '번식 최대 확률',
+    category: '번식'
+  },
+  mateCompatibilityThreshold: {
+    value: 0.3,
+    min: 0.1,
+    max: 0.5,
+    step: 0.05,
+    description: '번식 호환성 임계값',
+    category: '번식'
+  },
+  mateSuccessChance: {
+    value: 0.8,
+    min: 0.6,
+    max: 0.95,
+    step: 0.05,
+    description: '번식 성공 확률',
+    category: '번식'
+  },
+  mateStaminaRequirement: {
+    value: 15,
+    min: 10,
+    max: 25,
+    step: 1,
+    description: '번식 스태미나 요구사항',
+    category: '번식'
+  },
+  mateStaminaCost: {
+    value: 6,
+    min: 3,
+    max: 10,
+    step: 1,
+    description: '번식 스태미나 소모',
+    category: '번식'
+  },
+
+  // 수집 활동 관련
+  gatherStaminaCost: {
+    value: 4,
+    min: 2,
+    max: 8,
+    step: 1,
+    description: '수집 성공 시 스태미나 소모',
+    category: '수집 활동'
+  },
+  gatherStaminaCostFail: {
+    value: 2,
+    min: 1,
+    max: 5,
+    step: 1,
+    description: '수집 실패 시 스태미나 소모',
+    category: '수집 활동'
+  },
+  gatherHungerReduction: {
+    value: 15,
+    min: 10,
+    max: 25,
+    step: 2,
+    description: '수집 시 배고픔 감소량',
+    category: '수집 활동'
+  },
+  gatherRandomStaminaCost: {
+    value: 6,
+    min: 3,
+    max: 10,
+    step: 1,
+    description: '랜덤 수집 스태미나 소모',
+    category: '수집 활동'
+  },
+  gatherRandomStaminaCostFail: {
+    value: 3,
+    min: 1,
+    max: 6,
+    step: 1,
+    description: '랜덤 수집 실패 시 스태미나 소모',
+    category: '수집 활동'
+  },
+  gatherRandomHungerReduction: {
+    value: 8,
+    min: 5,
+    max: 15,
+    step: 1,
+    description: '랜덤 수집 시 배고픔 감소량',
+    category: '수집 활동'
+  },
+
+  // 생존 관련
+  survivalDesireThreshold: {
+    value: 0.3,
+    min: 0.2,
+    max: 0.5,
+    step: 0.05,
+    description: '생존 욕구 행동 임계값',
+    category: '생존'
+  },
+  highHungerThreshold: {
+    value: 70,
+    min: 50,
+    max: 90,
+    step: 5,
+    description: '높은 배고픔 임계값',
+    category: '생존'
+  },
+  highHungerEatChance: {
+    value: 0.7,
+    min: 0.5,
+    max: 0.9,
+    step: 0.05,
+    description: '높은 배고픔 시 먹기 확률',
+    category: '생존'
+  },
+  lowStaminaThreshold: {
+    value: 30,
+    min: 20,
+    max: 50,
+    step: 5,
+    description: '낮은 스태미나 임계값',
+    category: '생존'
+  },
+
+  // 랜덤 행동 관련
+  randomActionMultiplier: {
+    value: 1.5,
+    min: 1.0,
+    max: 2.5,
+    step: 0.1,
+    description: '랜덤 행동 확률 승수',
+    category: '랜덤 행동'
   }
 };
 

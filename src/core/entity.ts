@@ -60,15 +60,16 @@ export class EntitySystem {
     const ageIncreaseRate = parameterManager.getParameter('entity', 'ageIncreaseRate');
     const hpRegenRate = parameterManager.getParameter('entity', 'hpRegenRate');
     
-    entity.stamina = Math.max(0, entity.stamina - staminaDecreaseRate);
-    entity.hunger = Math.min(100, entity.hunger + hungerIncreaseRate);
-    entity.age += ageIncreaseRate;
+    // 스탯 감소율을 더 완만하게 조정
+    entity.stamina = Math.max(0, entity.stamina - (staminaDecreaseRate * 0.3)); // 더 줄임
+    entity.hunger = Math.min(100, entity.hunger + (hungerIncreaseRate * 0.3)); // 더 줄임
+    entity.age += (ageIncreaseRate * 0.3); // 더 줄임
     
     // HP 자연 회복/감소
     if (entity.stamina > 50) {
       entity.hp = Math.min(100, entity.hp + hpRegenRate);
     } else {
-      entity.hp = Math.max(0, entity.hp - 0.05);
+      entity.hp = Math.max(0, entity.hp - 0.02); // HP 감소율도 줄임
     }
   }
 
@@ -152,8 +153,13 @@ export class EntitySystem {
       }
     }
 
-    // 교배 확률 증가 (15% 확률)
-    if (this.rng.bool(0.15) && entity.age > 20 && entity.age < 80) {
+    // 교배 확률 증가 (번식 욕구에 따라 동적으로 조정)
+    const reproductionDesire = desires.reproduction || 0;
+    const reproductionBaseChance = parameterManager.getParameter('entity', 'reproductionBaseChance');
+    const reproductionDesireMultiplier = parameterManager.getParameter('entity', 'reproductionDesireMultiplier');
+    const reproductionMaxChance = parameterManager.getParameter('entity', 'reproductionMaxChance');
+    const mateChance = Math.min(reproductionMaxChance, reproductionBaseChance + reproductionDesire * reproductionDesireMultiplier);
+    if (this.rng.bool(mateChance) && entity.age > 20 && entity.age < 80) {
       const potentialMates = world.entities.filter((e: Entity) => 
         e.id !== entity.id && e.hp > 0 && e.age > 20 && e.age < 80 &&
         e.species === entity.species &&
@@ -176,8 +182,9 @@ export class EntitySystem {
 
     const possibleActions = actionMap[maxDesireKey] || ['Rest'];
     
-    // survival 욕구가 높을 때 Gather 우선 - 파라미터 사용
-    if (maxDesireKey === 'survival' && desires.survival > 0.5) {
+    // survival 욕구가 높을 때 Gather/Eat 우선 - 파라미터 사용
+    const survivalDesireThreshold = parameterManager.getParameter('entity', 'survivalDesireThreshold');
+    if (maxDesireKey === 'survival' && desires.survival > survivalDesireThreshold) {
       // 배고픔이 높으면 Eat 우선, 그 다음 Gather
       const eatHungerThreshold = parameterManager.getParameter('entity', 'eatHungerThreshold');
       const eatPriorityChance = parameterManager.getParameter('entity', 'eatPriorityChance');
@@ -194,6 +201,23 @@ export class EntitySystem {
       }
     }
     
+    // 배고픔이 높으면 무조건 Eat 또는 Gather 시도
+    const highHungerThreshold = parameterManager.getParameter('entity', 'highHungerThreshold');
+    const highHungerEatChance = parameterManager.getParameter('entity', 'highHungerEatChance');
+    if (entity.hunger > highHungerThreshold) {
+      if (this.rng.bool(highHungerEatChance)) {
+        return 'Eat';
+      } else {
+        return 'Gather';
+      }
+    }
+    
+    // 스태미나가 낮으면 Rest 우선
+    const lowStaminaThreshold = parameterManager.getParameter('entity', 'lowStaminaThreshold');
+    if (entity.stamina < lowStaminaThreshold) {
+      return 'Rest';
+    }
+    
     // curiosity 욕구가 높을 때 Research 우선 - 파라미터 사용
     const curiosityThreshold = parameterManager.getParameter('entity', 'curiosityThreshold');
     const curiosityResearchChance = parameterManager.getParameter('entity', 'curiosityResearchChance');
@@ -203,10 +227,11 @@ export class EntitySystem {
       }
     }
     
-    // 랜덤 요소 추가 - 파라미터 사용
+    // 랜덤 요소 추가 - 파라미터 사용 (확률 증가)
     const randomActionChance = parameterManager.getParameter('entity', 'randomActionChance');
-    if (this.rng.bool(randomActionChance)) {
-      const allActions: ActionType[] = ['Gather', 'Eat', 'Rest', 'Move', 'Craft', 'Build', 'Research', 'Social', 'Trade'];
+    const randomActionMultiplier = parameterManager.getParameter('entity', 'randomActionMultiplier');
+    if (this.rng.bool(randomActionChance * randomActionMultiplier)) {
+      const allActions: ActionType[] = ['Gather', 'Eat', 'Rest', 'Move', 'Craft', 'Build', 'Research', 'Social', 'Trade', 'Mate'];
       return this.rng.pick(allActions);
     }
 
@@ -284,8 +309,11 @@ export class EntitySystem {
         if (this.rng.bool(successRate)) {
           const yieldAmount = Math.floor(this.rng.range(3, 10) * (1 + skillBonus)); // 수확량 증가
           this.addItemToInventory(entity, 'food', yieldAmount);
-          entity.stamina -= 8; // 스태미나 소모 감소
-          entity.hunger = Math.max(0, entity.hunger - 20); // 배고픔 감소 증가
+          
+          const gatherStaminaCost = parameterManager.getParameter('entity', 'gatherStaminaCost');
+          const gatherHungerReduction = parameterManager.getParameter('entity', 'gatherHungerReduction');
+          entity.stamina -= gatherStaminaCost;
+          entity.hunger = Math.max(0, entity.hunger - gatherHungerReduction);
           
           // 식물 HP 감소 (완전히 소비하지 않음)
           closestPlant.hp = Math.max(0, closestPlant.hp - 5);
@@ -297,7 +325,8 @@ export class EntitySystem {
           });
           return true;
         } else {
-          entity.stamina -= 3; // 실패 시 스태미나 소모 감소
+          const gatherStaminaCostFail = parameterManager.getParameter('entity', 'gatherStaminaCostFail');
+          entity.stamina -= gatherStaminaCostFail;
           this.logger.warning('entity', `${entity.name}이(가) 채집에 실패했습니다.`, entity.id, entity.name);
           return false;
         }
@@ -311,13 +340,17 @@ export class EntitySystem {
     if (this.rng.bool(successRate)) {
       const yieldAmount = Math.floor(this.rng.range(1, 5) * (1 + skillBonus));
       this.addItemToInventory(entity, 'food', yieldAmount);
-      entity.stamina -= 10;
-      entity.hunger = Math.max(0, entity.hunger - 10);
+      
+      const gatherRandomStaminaCost = parameterManager.getParameter('entity', 'gatherRandomStaminaCost');
+      const gatherRandomHungerReduction = parameterManager.getParameter('entity', 'gatherRandomHungerReduction');
+      entity.stamina -= gatherRandomStaminaCost;
+      entity.hunger = Math.max(0, entity.hunger - gatherRandomHungerReduction);
       
       this.logger.info('entity', `${entity.name}이(가) 땅에서 음식을 ${yieldAmount}개 채집했습니다.`, entity.id, entity.name, { yield: yieldAmount });
       return true;
     } else {
-      entity.stamina -= 5;
+      const gatherRandomStaminaCostFail = parameterManager.getParameter('entity', 'gatherRandomStaminaCostFail');
+      entity.stamina -= gatherRandomStaminaCostFail;
       this.logger.warning('entity', `${entity.name}이(가) 채집에 실패했습니다.`, entity.id, entity.name);
       return false;
     }
@@ -509,7 +542,8 @@ export class EntitySystem {
   }
 
   private performMate(entity: Entity, world: any): boolean {
-    if (entity.stamina < 20 || entity.age < 20 || entity.age > 80) return false;
+    const mateStaminaRequirement = parameterManager.getParameter('entity', 'mateStaminaRequirement');
+    if (entity.stamina < mateStaminaRequirement || entity.age < 20 || entity.age > 80) return false;
 
     // world 객체 안전성 체크
     if (!world || !world.entities) return false;
@@ -526,7 +560,9 @@ export class EntitySystem {
     const mate = this.rng.pick(potentialMates) as Entity;
     const compatibility = this.calculateCompatibility(entity, mate);
     
-    if (compatibility > 0.5 && this.rng.bool(0.7)) {
+    const mateCompatibilityThreshold = parameterManager.getParameter('entity', 'mateCompatibilityThreshold');
+    const mateSuccessChance = parameterManager.getParameter('entity', 'mateSuccessChance');
+    if (compatibility > mateCompatibilityThreshold && this.rng.bool(mateSuccessChance)) {
       // 자식 생성
       if (world.createChild) {
         const childPos = {
@@ -541,7 +577,8 @@ export class EntitySystem {
       }
     }
 
-    entity.stamina -= 10;
+    const mateStaminaCost = parameterManager.getParameter('entity', 'mateStaminaCost');
+    entity.stamina -= mateStaminaCost;
     this.logger.warning('entity', `${entity.name}이(가) 교배에 실패했습니다.`, entity.id, entity.name);
     return false;
   }
