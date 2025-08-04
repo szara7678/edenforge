@@ -32,6 +32,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
       case 'genetics': return '🧬';
       case 'learning': return '📚';
       case 'emotion': return '💭';
+      case 'hunting': return '🏹';
       default: return '📝';
     }
   };
@@ -47,6 +48,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
       case 'genetics': return '유전';
       case 'learning': return '학습';
       case 'emotion': return '감정';
+      case 'hunting': return '사냥';
       default: return '기타';
     }
   };
@@ -88,6 +90,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
     { value: 'entity', label: '엔티티', icon: '👤' },
     { value: 'material', label: '재료', icon: '🔧' },
     { value: 'combat', label: '전투', icon: '⚔️' },
+    { value: 'hunting', label: '사냥', icon: '🏹' },
     { value: 'faction', label: '파벌', icon: '⚔️' },
     { value: 'genetics', label: '유전', icon: '🧬' },
     { value: 'learning', label: '학습', icon: '📚' },

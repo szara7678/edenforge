@@ -6,7 +6,7 @@ interface ChartsPanelProps {
   worldState: WorldState;
 }
 
-type ChartType = 'population' | 'skills' | 'factions' | 'materials' | 'ecosystem' | 'emotions';
+type ChartType = 'population' | 'skills' | 'factions' | 'materials' | 'ecosystem' | 'emotions' | 'deaths';
 
 export const ChartsPanel: React.FC<ChartsPanelProps> = ({ worldState }) => {
   const [activeChart, setActiveChart] = useState<ChartType>('population');
@@ -198,7 +198,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({ worldState }) => {
 
     const colors = [
       '#6bcf7f', '#ff6b6b', '#ffd93d', '#4ecdc4', '#a8e6cf', '#ff9ff3',
-      '#f368e0', '#ff6348', '#00d2ff', '#ff9ff3', '#feca57', '#ff6b6b',
+      '#f368e0', '#ff6348', '#00d2ff', '#00d2ff', '#ff9ff3', '#feca57', '#ff6b6b',
       '#48dbfb', '#0abde3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9ff3',
       '#feca57', '#ff6b6b', '#48dbfb', '#0abde3', '#54a0ff'
     ];
@@ -212,13 +212,61 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({ worldState }) => {
       }));
   }, [worldState.entities]);
 
+  // 사망 이유 추이 데이터
+  const deathData = useMemo(() => {
+    // 로그에서 사망 관련 로그 추출
+    const deathLogs = worldState.logs.filter(log => 
+      log.level === 'error' && 
+      log.message.includes('사망') && 
+      log.data?.cause
+    );
+
+    // 게임 틱을 기준으로 시간 슬롯 생성
+    const currentTick = worldState.tick;
+    const timeSlots = Array.from({ length: timeRange }, (_, i) => i);
+    
+    return timeSlots.map(timeSlot => {
+      // 각 슬롯의 틱 범위 계산
+      const slotStartTick = Math.max(0, currentTick - timeRange + timeSlot);
+      const slotEndTick = slotStartTick + 1;
+      
+      const slotLogs = deathLogs.filter(log => {
+        // 로그의 틱 정보 추출 (실제로는 로그에 틱 정보가 있어야 함)
+        // 현재는 타임스탬프를 기반으로 추정
+        const logTick = Math.floor((log.timestamp % 1000000) / 1000); // 간단한 틱 추정
+        return logTick >= slotStartTick && logTick < slotEndTick;
+      });
+
+      const reasonCounts = {
+        'HP 부족': 0,
+        '극심한 배고픔': 0,
+        '노화': 0,
+        '전투': 0
+      };
+
+      slotLogs.forEach(log => {
+        const cause = log.data?.cause;
+        if (cause && reasonCounts.hasOwnProperty(cause)) {
+          reasonCounts[cause as keyof typeof reasonCounts]++;
+        }
+      });
+
+      return {
+        time: timeSlot,
+        tick: slotStartTick,
+        ...reasonCounts
+      };
+    });
+  }, [worldState.logs, worldState.tick, timeRange]);
+
   const chartTypes = [
     { id: 'population', name: '인구', icon: '👥' },
     { id: 'skills', name: '스킬', icon: '⚔️' },
     { id: 'factions', name: '파벌', icon: '⚔️' },
     { id: 'materials', name: '재료', icon: '🔬' },
     { id: 'ecosystem', name: '생태계', icon: '🌿' },
-    { id: 'emotions', name: '감정', icon: '💭' }
+    { id: 'emotions', name: '감정', icon: '💭' },
+    { id: 'deaths', name: '사망', icon: '💀' }
   ];
 
   const renderChart = () => {
@@ -389,6 +437,89 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({ worldState }) => {
           </div>
         );
 
+      case 'deaths':
+        return (
+          <div>
+            {/* 시간 범위 선택 UI */}
+            <div style={{ 
+              marginBottom: '15px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px',
+              fontSize: '12px'
+            }}>
+              <span style={{ color: '#4ecdc4', fontWeight: 'bold' }}>시간 범위:</span>
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(Number(e.target.value))}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: '#2a2a2a',
+                  border: '1px solid #4ecdc4',
+                  borderRadius: '4px',
+                  color: 'white',
+                  fontSize: '11px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value={50} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>50 틱</option>
+                <option value={100} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>100 틱</option>
+                <option value={200} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>200 틱</option>
+                <option value={500} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>500 틱</option>
+                <option value={1000} style={{ backgroundColor: '#2a2a2a', color: 'white' }}>1000 틱</option>
+              </select>
+              <span style={{ opacity: 0.7, fontSize: '10px' }}>
+                (현재 {timeRange}개 데이터 포인트)
+              </span>
+            </div>
+            
+            <div style={{ height: '300px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={deathData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="HP 부족" 
+                    stroke="#ff6b6b" 
+                    strokeWidth={2}
+                    dot={{ fill: '#ff6b6b', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="극심한 배고픔" 
+                    stroke="#ffd93d" 
+                    strokeWidth={2}
+                    dot={{ fill: '#ffd93d', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="노화" 
+                    stroke="#4ecdc4" 
+                    strokeWidth={2}
+                    dot={{ fill: '#4ecdc4', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="전투" 
+                    stroke="#a8e6cf" 
+                    strokeWidth={2}
+                    dot={{ fill: '#a8e6cf', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        );
+
       default:
         return <div>차트를 선택해주세요.</div>;
     }
@@ -457,6 +588,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({ worldState }) => {
         {activeChart === 'materials' && '재료 티어별 분포'}
         {activeChart === 'ecosystem' && '생태계 구성 요소'}
         {activeChart === 'emotions' && '엔티티 감정 상태 분포'}
+        {activeChart === 'deaths' && '시간순 사망 이유 추이'}
       </div>
     </div>
   );

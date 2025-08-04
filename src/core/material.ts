@@ -1,6 +1,7 @@
 import { Material } from '../types';
 import { RNG, uuid } from './utils';
 import { Logger } from './utils/logger';
+import { parameterManager } from '../parameters';
 
 export class MaterialSystem {
   private materials: Material[] = [];
@@ -37,8 +38,9 @@ export class MaterialSystem {
   // 재료 조합 시스템
   combineMaterials(materialA: Material, materialB: Material): Material | null {
     const score = this.calculateCombinationScore(materialA, materialB);
+    const combinationThreshold = parameterManager.getParameter('material', 'combinationThreshold');
     
-    if (score < 0.3) { // 조합 임계값
+    if (score < combinationThreshold) {
       this.logger.warning('material', `${materialA.name}과 ${materialB.name}의 조합이 실패했습니다.`, undefined, undefined, { score });
       return null;
     }
@@ -72,16 +74,19 @@ export class MaterialSystem {
     
     let score = 0;
     
-    // 공통 속성이 있으면 점수 증가
+    // 공통 속성이 있으면 점수 증가 - 파라미터 사용
     const commonProps = aProps.filter(prop => bProps.includes(prop));
-    score += commonProps.length * 0.2;
+    const combinationCommonPropBonus = parameterManager.getParameter('material', 'combinationCommonPropBonus');
+    score += commonProps.length * combinationCommonPropBonus;
     
-    // 티어 차이가 적으면 점수 증가
+    // 티어 차이가 적으면 점수 증가 - 파라미터 사용
     const tierDiff = Math.abs(a.tier - b.tier);
-    score += (3 - tierDiff) * 0.1;
+    const combinationTierDiffPenalty = parameterManager.getParameter('material', 'combinationTierDiffPenalty');
+    score += (3 - tierDiff) * combinationTierDiffPenalty;
     
-    // 랜덤 요소
-    score += this.rng.range(0, 0.3);
+    // 랜덤 요소 - 파라미터 사용
+    const combinationRandomFactor = parameterManager.getParameter('material', 'combinationRandomFactor');
+    score += this.rng.range(0, combinationRandomFactor);
     
     return Math.min(1, score);
   }
@@ -92,13 +97,16 @@ export class MaterialSystem {
     // 모든 속성 키 수집
     const allProps = new Set([...Object.keys(propsA), ...Object.keys(propsB)]);
     
+    // 속성 변이 - 파라미터 사용
+    const researchPropertyVariation = parameterManager.getParameter('material', 'researchPropertyVariation');
+    
     for (const prop of allProps) {
       const valueA = propsA[prop] || 0;
       const valueB = propsB[prop] || 0;
       
       // 가중 평균 + 약간의 변이
       const avgValue = (valueA + valueB) / 2;
-      const variation = this.rng.range(-0.1, 0.1);
+      const variation = this.rng.range(-researchPropertyVariation, researchPropertyVariation);
       mixedProps[prop] = Math.max(0, Math.min(1, avgValue + variation));
     }
     
@@ -123,6 +131,63 @@ export class MaterialSystem {
     
     const materialA = this.rng.pick(this.materials);
     const materialB = this.rng.pick(this.materials.filter(m => m.id !== materialA.id));
+    
+    return this.combineMaterials(materialA, materialB);
+  }
+
+  // 엔티티 기반 연구 재료 조합 시도
+  attemptResearchBasedCombination(entity: any): Material | null {
+    if (this.materials.length < 2) return null;
+    
+    // 엔티티의 분석 스킬에 따른 조합 가능성 계산 - 파라미터 사용
+    const analyzeSkill = entity.skills.analyze || 0;
+    const researchBaseChance = parameterManager.getParameter('material', 'researchBaseChance');
+    const baseChance = Math.min(researchBaseChance, analyzeSkill / 100);
+    
+    // 지능과 분석 스킬이 높을수록 더 나은 재료 조합 가능 - 파라미터 사용
+    const intelligenceBonus = (entity.stats.int || 0) / 100;
+    const researchIntelligenceBonus = parameterManager.getParameter('material', 'researchIntelligenceBonus');
+    const totalChance = baseChance + intelligenceBonus * researchIntelligenceBonus;
+    
+    if (!this.rng.bool(totalChance)) {
+      return null;
+    }
+    
+    // 스킬에 따른 재료 선택 (높은 스킬일수록 더 나은 재료 선택) - 파라미터 사용
+    const researchTierSkillDivisor = parameterManager.getParameter('material', 'researchTierSkillDivisor');
+    const availableMaterials = this.materials.filter(m => m.tier <= Math.floor(analyzeSkill / researchTierSkillDivisor) + 1);
+    
+    if (availableMaterials.length < 2) {
+      return null;
+    }
+    
+    // 스킬에 따른 가중치 적용 - 파라미터 사용
+    const researchWeightMultiplier = parameterManager.getParameter('material', 'researchWeightMultiplier');
+    const weightedMaterials = availableMaterials.map(material => ({
+      material,
+      weight: material.tier * (analyzeSkill / 100) * researchWeightMultiplier
+    }));
+    
+    // 가중치 기반 선택
+    const totalWeight = weightedMaterials.reduce((sum, item) => sum + item.weight, 0);
+    let randomWeight = this.rng.range(0, totalWeight);
+    
+    let materialA: Material | null = null;
+    for (const item of weightedMaterials) {
+      randomWeight -= item.weight;
+      if (randomWeight <= 0) {
+        materialA = item.material;
+        break;
+      }
+    }
+    
+    if (!materialA) {
+      materialA = this.rng.pick(availableMaterials);
+    }
+    
+    // 두 번째 재료 선택 (첫 번째와 다른 것)
+    const remainingMaterials = availableMaterials.filter(m => m.id !== materialA.id);
+    const materialB = this.rng.pick(remainingMaterials);
     
     return this.combineMaterials(materialA, materialB);
   }

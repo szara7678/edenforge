@@ -1,4 +1,5 @@
 import { Vec2, StimKey } from '../../types';
+import { parameterManager } from '../../parameters';
 
 /** 랜덤 생성기 */
 export class RNG {
@@ -111,10 +112,26 @@ export function uuid(): string {
 
 /** Stim 계산 */
 export function calculateStim(entity: any): Record<StimKey, number> {
+  // 배고픔이 높을 때 survival 욕구 강화
+  const hungerFactor = entity.hunger / 100;
+  const survivalStim = Math.max(
+    1 - entity.hp / 100, 
+    1 - entity.stamina / 100,
+    hungerFactor * 0.8 // 배고픔이 높을수록 survival 욕구 증가
+  );
+  
+  // 지능과 분석 스킬에 따른 호기심 욕구 - 파라미터 사용
+  const intelligenceFactor = (entity.stats.int || 0) / 100;
+  const analyzeSkillFactor = (entity.skills.analyze || 0) / 100;
+  const curiosityIntelligenceBonus = parameterManager.getParameter('entity', 'curiosityIntelligenceBonus');
+  const curiosityAnalyzeBonus = parameterManager.getParameter('entity', 'curiosityAnalyzeBonus');
+  const curiosityMaxStim = parameterManager.getParameter('entity', 'curiosityMaxStim');
+  const curiosityStim = Math.min(curiosityMaxStim, 0.3 + intelligenceFactor * curiosityIntelligenceBonus + analyzeSkillFactor * curiosityAnalyzeBonus);
+  
   const stim: Record<StimKey, number> = {
-    survival: Math.max(1 - entity.hp / 100, 1 - entity.stamina / 100),
+    survival: survivalStim,
     reproduction: 0, // 나중에 구현
-    curiosity: 0.3,
+    curiosity: curiosityStim,
     social: 0.2,
     prestige: 0.1,
     fatigue: 1 - entity.stamina / 100

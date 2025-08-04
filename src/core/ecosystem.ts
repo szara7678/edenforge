@@ -337,6 +337,9 @@ export class EcosystemSystem {
       animal.stamina = Math.max(0, animal.stamina - 0.1);
       animal.hunger = Math.min(100, animal.hunger + 0.05);
       animal.age += 0.001;
+      
+      // 공포도 자연 감소
+      animal.fear = Math.max(0, animal.fear - 0.01);
 
       // HP 자연 회복/감소
       if (animal.stamina > 50) {
@@ -370,8 +373,16 @@ export class EcosystemSystem {
         continue;
       }
 
-      // Pulse 생성
-      this.createPulse(animal);
+      // Pulse 생성 - 실제 상황에 따른 생성
+      // 공포 펄스 (높은 공포도에서)
+      if (animal.fear > 0.7) {
+        this.createPulse(animal, 'fear', animal.fear);
+      }
+      
+      // 위험 펄스 (높은 위협도에서)
+      if (animal.threat > 0.7) {
+        this.createPulse(animal, 'danger', animal.threat);
+      }
     }
 
     // 사망한 동물 제거
@@ -393,18 +404,19 @@ export class EcosystemSystem {
         this.logger.info('ecosystem', `${plant.species}이(가) 성숙했습니다.`, plant.id, plant.species);
       }
 
-      // 번식 (성숙한 식물)
-      if (plant.isMature && this.rng.bool(0.01)) {
+      // 번식 (성숙한 식물) - 확률 감소
+      if (plant.isMature && this.rng.bool(0.002)) { // 1% → 0.2%로 감소
         this.reproducePlant(plant);
       }
 
-      // 사망 체크
-      if (plant.age >= 200 || plant.hp <= 0) {
+      // 사망 체크 - 더 엄격한 조건
+      if (plant.age >= 100 || plant.hp <= 0 || (plant.isMature && this.rng.bool(0.001))) { // 나이 단축, 성숙 후 자연사 추가
         plant.isDead = true;
         
         let cause = '';
         if (plant.hp <= 0) cause = 'HP 부족';
-        else if (plant.age >= 200) cause = '노화';
+        else if (plant.age >= 100) cause = '노화';
+        else if (plant.isMature) cause = '자연사';
         
         const deathInfo = {
           cause,
@@ -450,37 +462,19 @@ export class EcosystemSystem {
     this.logger.info('ecosystem', `${parent.species}이(가) 번식했습니다.`, child.id, child.species);
   }
 
-  // Pulse 생성
-  private createPulse(animal: Animal): void {
-    // 공포 Pulse (위험 상황에서)
-    if (animal.fear > 0.5) {
-      const pulse: Pulse = {
-        id: `pulse_${Date.now()}_${this.rng.range(1000, 9999)}`,
-        type: 'fear',
-        source: animal,
-        pos: { ...animal.pos },
-        intensity: animal.fear,
-        radius: animal.pulseRadius,
-        age: 0,
-        maxAge: 50
-      };
-      this.pulses.push(pulse);
-    }
-
-    // 위험 Pulse (포식자가 가까이 있을 때)
-    if (animal.threat > 0.7) {
-      const pulse: Pulse = {
-        id: `pulse_${Date.now()}_${this.rng.range(1000, 9999)}`,
-        type: 'danger',
-        source: animal,
-        pos: { ...animal.pos },
-        intensity: animal.threat,
-        radius: animal.pulseRadius * 1.5,
-        age: 0,
-        maxAge: 30
-      };
-      this.pulses.push(pulse);
-    }
+  // Pulse 생성 - 실제 상황에 따른 생성
+  private createPulse(animal: Animal, type: 'fear' | 'danger' | 'attraction' | 'food', intensity: number): void {
+    const pulse: Pulse = {
+      id: `pulse_${Date.now()}_${this.rng.range(1000, 9999)}`,
+      type,
+      source: animal,
+      pos: { ...animal.pos },
+      intensity: Math.min(1, intensity),
+      radius: animal.pulseRadius,
+      age: 0,
+      maxAge: type === 'fear' ? 30 : type === 'danger' ? 25 : 40
+    };
+    this.pulses.push(pulse);
   }
 
   // Pulse 업데이트
@@ -488,10 +482,10 @@ export class EcosystemSystem {
     for (const pulse of this.pulses) {
       pulse.age += 1;
       
-      // 강도 감소
+      // 강도 감소 (자연스럽게)
       pulse.intensity *= 0.98;
       
-      // 반경 감소
+      // 반경 감소 (자연스럽게)
       pulse.radius *= 0.99;
     }
 
@@ -635,8 +629,8 @@ export class EcosystemSystem {
 
         const distance = this.calculateDistance(human.pos, plant.pos);
         
-        // 인간은 모든 식물을 섭취 가능
-        if (distance < 10) {
+        // 인간은 모든 식물을 섭취 가능 - 확률 대폭 증가
+        if (distance < 15 && this.rng.bool(0.8)) { // 40% → 80% 확률로 섭취, 거리도 증가
           this.handlePlantConsumption(human, plant);
         }
       }
@@ -716,26 +710,55 @@ export class EcosystemSystem {
   }
 
   // 포식 처리
-  private handlePredation(predator: Animal | Entity, prey: Animal | Entity): void {
+  handlePredation(predator: Animal | Entity, prey: Animal | Entity): void {
     const predatorCombat = 'skills' in predator ? predator.skills.combat : 50;
     const preyCombat = 'skills' in prey ? prey.skills.combat : 50;
-    const successChance = (predatorCombat - preyCombat) / 100 + 0.5;
+    
+    // 사냥 성공 확률 - 동물이 인간을 공격할 때 더 높은 확률
+    let baseChance = 0.6; // 기본 60% 확률
+    
+    // 동물이 인간을 공격할 때 확률 증가
+    if (predator.species !== 'human' && prey.species === 'human') {
+      baseChance = 0.75; // 75%로 증가
+    }
+    
+    const skillBonus = (predatorCombat - preyCombat) / 200; // 스킬 차이의 절반만 반영
+    const successChance = Math.max(0.3, Math.min(0.9, baseChance + skillBonus));
     
     if (this.rng.bool(successChance)) {
       // 포식 성공
       prey.hp = 0;
-      predator.hunger = Math.max(0, predator.hunger - 30);
-      predator.hp = Math.min(100, predator.hp + 20);
+      predator.hunger = Math.max(0, predator.hunger - 40); // 배고픔 감소 증가
+      predator.hp = Math.min(100, predator.hp + 25); // HP 회복 증가
       
-      this.logger.success('ecosystem', `${predator.name}이(가) ${prey.name}을(를) 사냥했습니다!`, predator.id, predator.name, { prey: prey.name });
+      // 사냥한 동물의 크기에 따라 식량 획득
+      const preySize = 'size' in prey ? prey.size : 0.5;
+      const foodYield = Math.floor(5 + preySize * 10); // 5-15개 식량
+      
+      // 인벤토리에 식량 추가
+      predator.inventory.items['food'] = (predator.inventory.items['food'] || 0) + foodYield;
+      
+      // 경험치 획득
+      if ('skills' in predator) {
+        predator.skills.combat = Math.min(100, predator.skills.combat + 2);
+        predator.skills.gather = Math.min(100, predator.skills.gather + 1);
+      }
+      
+      this.logger.success('hunting', `${predator.name}이(가) ${prey.name}을(를) 사냥하여 ${foodYield}개 식량을 획득했습니다!`, predator.id, predator.name, { 
+        prey: prey.name, 
+        foodYield,
+        remainingFood: predator.inventory.items['food'] || 0
+      });
     } else {
       // 포식 실패
       if ('fear' in prey) {
         prey.fear = Math.min(1, prey.fear + 0.3);
+        // 공포 펄스 생성
+        this.createPulse(prey as Animal, 'fear', prey.fear);
       }
-      predator.stamina = Math.max(0, predator.stamina - 10);
+      predator.stamina = Math.max(0, predator.stamina - 8); // 스태미나 소모 감소
       
-      this.logger.info('ecosystem', `${prey.name}이(가) ${predator.name}으로부터 도망쳤습니다.`, prey.id, prey.name);
+      this.logger.info('hunting', `${prey.name}이(가) ${predator.name}으로부터 도망쳤습니다.`, prey.id, prey.name);
     }
   }
 
@@ -748,11 +771,15 @@ export class EcosystemSystem {
       entity2.morale = Math.max(0, entity2.morale - 10);
       if ('fear' in entity2) {
         entity2.fear = Math.min(1, entity2.fear + 0.2);
+        // 공포 펄스 생성
+        this.createPulse(entity2 as Animal, 'fear', entity2.fear);
       }
     } else if (strength2 > strength1) {
       entity1.morale = Math.max(0, entity1.morale - 10);
       if ('fear' in entity1) {
         entity1.fear = Math.min(1, entity1.fear + 0.2);
+        // 공포 펄스 생성
+        this.createPulse(entity1 as Animal, 'fear', entity1.fear);
       }
     }
   }
@@ -764,11 +791,11 @@ export class EcosystemSystem {
     // 배고픔이 높을수록 더 적극적으로 섭취
     const hungerFactor = consumer.hunger / 100;
     const gatherSkill = 'skills' in consumer ? consumer.skills.gather / 100 : 0.5;
-    const consumption = Math.min(plant.hp, 15 + gatherSkill * 10 + hungerFactor * 20);
+    const consumption = Math.min(plant.hp, 20 + gatherSkill * 15 + hungerFactor * 25); // 섭취량 증가
     
     plant.hp -= consumption;
-    consumer.hunger = Math.max(0, consumer.hunger - consumption * 0.8);
-    consumer.hp = Math.min(100, consumer.hp + consumption * 0.1);
+    consumer.hunger = Math.max(0, consumer.hunger - consumption * 1.2); // 배고픔 감소 증가
+    consumer.hp = Math.min(100, consumer.hp + consumption * 0.15); // HP 회복 증가
     
     // 지식 획득
     if (!consumer.knowledge[`plant_${plant.species}`]) {
@@ -779,6 +806,11 @@ export class EcosystemSystem {
       this.logger.info('ecosystem', `${consumer.name}이(가) ${plant.species}을(를) 완전히 먹었습니다.`, consumer.id, consumer.name);
     } else {
       this.logger.info('ecosystem', `${consumer.name}이(가) ${plant.species}을(를) 부분적으로 섭취했습니다.`, consumer.id, consumer.name);
+    }
+    
+    // 식량 펄스 생성 (식물 섭취 시)
+    if ('fear' in consumer) {
+      this.createPulse(consumer as Animal, 'food', 0.6);
     }
   }
 

@@ -76,7 +76,7 @@ export class CombatSystem {
     if (!hit) {
       // 공격 실패
       attacker.stamina -= 10;
-      this.logger.warning('combat', `${attacker.name}의 공격이 빗나갔습니다.`, attacker.id, attacker.name);
+      this.logger.warning('hunting', `${attacker.name}의 공격이 빗나갔습니다.`, attacker.id, attacker.name);
       return null;
     }
 
@@ -98,9 +98,9 @@ export class CombatSystem {
 
     // 전투 결과 로그
     if (isCritical) {
-      this.logger.success('combat', `${attacker.name}이(가) ${defender.name}에게 크리티컬 히트! ${finalDamage} 데미지!`, attacker.id, attacker.name, { damage: finalDamage, target: defender.name });
+      this.logger.success('hunting', `${attacker.name}이(가) ${defender.name}에게 크리티컬 히트! ${finalDamage} 데미지!`, attacker.id, attacker.name, { damage: finalDamage, target: defender.name });
     } else {
-      this.logger.success('combat', `${attacker.name}이(가) ${defender.name}에게 ${finalDamage} 데미지를 입혔습니다.`, attacker.id, attacker.name, { damage: finalDamage, target: defender.name });
+      this.logger.success('hunting', `${attacker.name}이(가) ${defender.name}에게 ${finalDamage} 데미지를 입혔습니다.`, attacker.id, attacker.name, { damage: finalDamage, target: defender.name });
     }
 
     // 사망 체크
@@ -118,7 +118,7 @@ export class CombatSystem {
         }
       };
       
-      this.logger.error('combat', `${defender.name}이(가) ${attacker.name}의 공격으로 전투에서 사망했습니다.`, defender.id, defender.name, deathInfo);
+      this.logger.error('hunting', `${defender.name}이(가) ${attacker.name}의 공격으로 전투에서 사망했습니다.`, defender.id, defender.name, deathInfo);
       
       return {
         winner: attacker,
@@ -210,7 +210,7 @@ export class CombatSystem {
         experience: result.experience
       };
       
-      this.logger.error('combat', `${loser.name}이(가) 전투에서 치명상을 입고 사망했습니다.`, loser.id, loser.name, injuryInfo);
+      this.logger.error('hunting', `${loser.name}이(가) 전투에서 치명상을 입고 사망했습니다.`, loser.id, loser.name, injuryInfo);
     } else {
       // 부상 처리
       loser.morale = Math.max(0, loser.morale - 20);
@@ -221,7 +221,7 @@ export class CombatSystem {
         experience: result.experience
       };
       
-      this.logger.warning('combat', `${loser.name}이(가) 전투에서 부상을 입었습니다. (남은 HP: ${loser.hp.toFixed(1)})`, loser.id, loser.name, injuryInfo);
+      this.logger.warning('hunting', `${loser.name}이(가) 전투에서 부상을 입었습니다. (남은 HP: ${loser.hp.toFixed(1)})`, loser.id, loser.name, injuryInfo);
     }
   }
 } 

@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { Material, Entity } from '../types';
-import { DetailModal } from './DetailModal';
 
 interface UnifiedPanelProps {
   materials: Material[];
@@ -21,9 +20,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('materials');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | undefined>();
-  const [selectedEntity, setSelectedEntity] = useState<Entity | undefined>();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
 
   // 검색 및 필터링된 재료
   const filteredMaterials = useMemo(() => {
@@ -229,12 +226,9 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
               filteredMaterials.map((material) => (
                 <div 
                   key={material.id}
-                  onClick={() => {
-                    setSelectedMaterial(material);
-                    setSelectedEntity(undefined);
-                    setIsModalOpen(true);
-                    onMaterialSelect?.(material);
-                  }}
+                                      onClick={() => {
+                      onMaterialSelect?.(material);
+                    }}
                   style={{
                     padding: '10px',
                     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -311,9 +305,6 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                   <div 
                     key={entity.id}
                     onClick={() => {
-                      setSelectedEntity(entity);
-                      setSelectedMaterial(undefined);
-                      setIsModalOpen(true);
                       onEntitySelect?.(entity);
                     }}
                     style={{
@@ -375,17 +366,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
         )}
       </div>
       
-      {/* 상세 정보 모달 */}
-      <DetailModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedMaterial(undefined);
-          setSelectedEntity(undefined);
-        }}
-        data={selectedMaterial || selectedEntity || null}
-        type={selectedMaterial ? 'material' : selectedEntity ? 'entity' : null}
-      />
+
     </div>
   );
 };

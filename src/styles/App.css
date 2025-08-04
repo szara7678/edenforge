@@ -806,7 +806,8 @@ canvas {
 }
 
 /* 드래그 가능한 패널 스타일 */
-.draggable-panel {
+.draggable-panel,
+.resizable-panel {
   background-color: rgba(0, 0, 0, 0.9);
   color: white;
   border-radius: 8px;
@@ -815,6 +816,600 @@ canvas {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   border: 1px solid #333;
   overflow: hidden;
+}
+
+/* 리사이즈 핸들 스타일 */
+.resize-handle {
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+
+.resize-handle:hover {
+  background-color: rgba(78, 205, 196, 0.3);
+}
+
+.resize-handle-n,
+.resize-handle-s {
+  cursor: ns-resize;
+}
+
+.resize-handle-w,
+.resize-handle-e {
+  cursor: ew-resize;
+}
+
+.resize-handle-nw,
+.resize-handle-ne,
+.resize-handle-sw,
+.resize-handle-se {
+  cursor: nw-resize;
+}
+
+.resize-handle-ne,
+.resize-handle-sw {
+  cursor: ne-resize;
+}
+
+/* 데이터 편집 패널 스타일 */
+.data-editor-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-tabs {
+  display: flex;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-bottom: 1px solid #333;
+  overflow-x: auto;
+}
+
+.editor-tab {
+  background: none;
+  border: none;
+  color: #888;
+  padding: 10px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.editor-tab:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.editor-tab.active {
+  color: #4ecdc4;
+  border-bottom-color: #4ecdc4;
+}
+
+.tab-icon {
+  font-size: 16px;
+}
+
+.tab-name {
+  font-size: 12px;
+}
+
+.tab-count {
+  font-size: 10px;
+  color: #666;
+}
+
+.editor-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-editor-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 15px;
+  overflow: hidden;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-shrink: 0;
+}
+
+.editor-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.editor-header h3 {
+  margin: 0;
+  color: #4ecdc4;
+}
+
+.create-btn {
+  background-color: #4ecdc4;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.create-btn:hover {
+  background-color: #3db8b0;
+}
+
+.back-btn {
+  background-color: #666;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+  background-color: #555;
+}
+
+.item-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 15px;
+  min-height: 0;
+}
+
+.item-item {
+  padding: 10px;
+  margin-bottom: 5px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.item-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.item-item.selected {
+  background-color: rgba(78, 205, 196, 0.2);
+  border: 1px solid #4ecdc4;
+}
+
+.item-name {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #4ecdc4;
+}
+
+.item-details {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: #888;
+}
+
+.item-details span {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.editor-form {
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 15px;
+  margin-top: 10px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.editor-form h4 {
+  margin: 0 0 15px 0;
+  color: #4ecdc4;
+}
+
+.editor-form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-group label {
+  min-width: 80px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.form-group input,
+.form-group select {
+  flex: 1;
+  background-color: #2a2a2a;
+  border: 1px solid #4ecdc4;
+  color: white;
+  padding: 5px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3db8b0;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.save-btn,
+.cancel-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.save-btn {
+  background-color: #4ecdc4;
+  color: white;
+}
+
+.save-btn:hover {
+  background-color: #3db8b0;
+}
+
+.cancel-btn {
+  background-color: #666;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #555;
+}
+
+/* 설정 패널 스타일 */
+.settings-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-tabs {
+  display: flex;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-bottom: 1px solid #333;
+  overflow-x: auto;
+}
+
+.settings-tab {
+  background: none;
+  border: none;
+  color: #888;
+  padding: 10px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.settings-tab:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.settings-tab.active {
+  color: #4ecdc4;
+  border-bottom-color: #4ecdc4;
+}
+
+.settings-content-wrapper {
+  flex: 1;
+  overflow: hidden;
+}
+
+.settings-content {
+  height: 100%;
+  overflow-y: auto;
+  padding: 15px;
+}
+
+.settings-section {
+  margin-bottom: 20px;
+}
+
+.settings-section h3 {
+  margin: 0 0 15px 0;
+  color: #4ecdc4;
+  font-size: 16px;
+}
+
+.settings-group {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.settings-group h4 {
+  margin: 0 0 10px 0;
+  color: #ccc;
+  font-size: 14px;
+}
+
+.game-stats,
+.performance-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.stat-label {
+  color: #888;
+  font-size: 12px;
+}
+
+.stat-value {
+  color: #4ecdc4;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+  color: white;
+}
+
+.new-game-btn {
+  background-color: #4ecdc4;
+}
+
+.new-game-btn:hover {
+  background-color: #3db8b0;
+}
+
+.save-game-btn {
+  background-color: #28a745;
+}
+
+.save-game-btn:hover {
+  background-color: #218838;
+}
+
+.load-game-btn {
+  background-color: #007bff;
+}
+
+.load-game-btn:hover {
+  background-color: #0056b3;
+}
+
+.reset-btn {
+  background-color: #dc3545;
+}
+
+.reset-btn:hover {
+  background-color: #c82333;
+}
+
+.export-btn {
+  background-color: #6f42c1;
+}
+
+.export-btn:hover {
+  background-color: #5a2d91;
+}
+
+.import-btn {
+  background-color: #fd7e14;
+}
+
+.import-btn:hover {
+  background-color: #e55a00;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.setting-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.setting-item input[type="checkbox"] {
+  margin: 0;
+}
+
+.setting-item input[type="range"] {
+  flex: 1;
+  margin: 0;
+}
+
+.setting-item select {
+  background-color: #2a2a2a;
+  border: 1px solid #4ecdc4;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.saved-games {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.saved-game-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 5px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.game-info {
+  flex: 1;
+}
+
+.game-name {
+  font-weight: bold;
+  color: #4ecdc4;
+  margin-bottom: 3px;
+}
+
+.game-details {
+  font-size: 11px;
+  color: #888;
+}
+
+.game-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.load-btn,
+.delete-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  transition: background-color 0.2s;
+}
+
+.load-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.load-btn:hover {
+  background-color: #0056b3;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+.no-saves {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 20px;
+}
+
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.confirm-modal {
+  background-color: rgba(0, 0, 0, 0.95);
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+}
+
+.confirm-modal h3 {
+  margin: 0 0 15px 0;
+  color: #4ecdc4;
+}
+
+.confirm-modal p {
+  margin: 0 0 20px 0;
+  color: #ccc;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.confirm-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.confirm-btn:hover {
+  background-color: #c82333;
 }
 
 .panel-header {
@@ -921,7 +1516,11 @@ canvas {
 .draggable-panel .unified-panel,
 .draggable-panel .faction-panel,
 .draggable-panel .genetics-panel,
-.draggable-panel .ecosystem-panel {
+.draggable-panel .ecosystem-panel,
+.resizable-panel .unified-panel,
+.resizable-panel .faction-panel,
+.resizable-panel .genetics-panel,
+.resizable-panel .ecosystem-panel {
   position: static;
   width: 100%;
   height: 100%;
@@ -934,14 +1533,22 @@ canvas {
 .draggable-panel .unified-header,
 .draggable-panel .faction-header,
 .draggable-panel .genetics-header,
-.draggable-panel .ecosystem-header {
+.draggable-panel .ecosystem-header,
+.resizable-panel .unified-header,
+.resizable-panel .faction-header,
+.resizable-panel .genetics-header,
+.resizable-panel .ecosystem-header {
   display: none;
 }
 
 .draggable-panel .unified-content,
 .draggable-panel .faction-content,
 .draggable-panel .genetics-content,
-.draggable-panel .ecosystem-content {
+.draggable-panel .ecosystem-content,
+.resizable-panel .unified-content,
+.resizable-panel .faction-content,
+.resizable-panel .genetics-content,
+.resizable-panel .ecosystem-content {
   padding: 0;
   height: 100%;
 }
@@ -1075,4 +1682,46 @@ canvas {
   font-size: 12px;
   color: #4ecdc4;
   font-weight: bold;
+}
+
+/* 확장된 편집 폼 스타일 */
+.data-editor-panel .editor-form .form-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.data-editor-panel .editor-form .form-section h4 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 16px;
+  border-bottom: 2px solid #4ecdc4;
+  padding-bottom: 5px;
+}
+
+.data-editor-panel .editor-form .stats-grid,
+.data-editor-panel .editor-form .skills-grid,
+.data-editor-panel .editor-form .genes-grid,
+.data-editor-panel .editor-form .epigenetics-grid,
+.data-editor-panel .editor-form .animal-traits-grid,
+.data-editor-panel .editor-form .plant-traits-grid,
+.data-editor-panel .editor-form .material-props-grid,
+.data-editor-panel .editor-form .culture-grid,
+.data-editor-panel .editor-form .faction-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.data-editor-panel .editor-form .form-group input[type="checkbox"] {
+  width: auto;
+  margin-right: 8px;
+}
+
+.data-editor-panel .editor-form .form-group input[type="color"] {
+  width: 60px;
+  height: 40px;
+  padding: 2px;
 } 

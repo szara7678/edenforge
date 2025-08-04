@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { WorldState } from '../types';
+import { WorldState, Entity, Animal, Plant } from '../types';
 import { BubbleFilters } from './BubbleFilterPanel';
 
 interface CanvasLayerProps {
@@ -13,11 +13,18 @@ interface MapView {
   scale: number;
 }
 
+interface ClickedEntity {
+  entity: Entity | Animal | Plant;
+  type: 'entity' | 'animal' | 'plant';
+  position: { x: number; y: number };
+}
+
 const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState, bubbleFilters }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mapView, setMapView] = useState<MapView>({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [clickedEntity, setClickedEntity] = useState<ClickedEntity | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -211,33 +218,7 @@ const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState, bubbleFilters }) 
       }
     }
 
-    // Pulse 렌더링
-    for (const pulse of worldState.pulses) {
-      let color = '#FF0000';
-      
-      switch (pulse.type) {
-        case 'fear':
-          color = '#FF0000';
-          break;
-        case 'danger':
-          color = '#FF4500';
-          break;
-        case 'attraction':
-          color = '#00FF00';
-          break;
-        case 'food':
-          color = '#FFD700';
-          break;
-      }
 
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = pulse.intensity * 0.5;
-      ctx.beginPath();
-      ctx.arc(pulse.pos.x, pulse.pos.y, pulse.radius, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
 
     // 감정 말풍선 렌더링 (필터링 적용)
     if (worldState.emotionBubbles.length > 0 && bubbleFilters) {
@@ -310,7 +291,50 @@ const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState, bubbleFilters }) 
     // 좌표 변환 복원
     ctx.restore();
 
-  }, [worldState, mapView]);
+    // 클릭된 엔티티 말풍선 렌더링
+    if (clickedEntity) {
+      const { entity, type, position } = clickedEntity;
+      
+      // 말풍선 배경
+      const bubbleWidth = 200;
+      const bubbleHeight = 80;
+      const bubbleX = position.x - bubbleWidth / 2;
+      const bubbleY = position.y - bubbleHeight - 20;
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.strokeStyle = '#4ecdc4';
+      ctx.lineWidth = 2;
+      ctx.fillRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+      ctx.strokeRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+      
+      // 텍스트 렌더링
+      ctx.fillStyle = 'white';
+      ctx.font = '12px Noto Sans KR';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      
+      let title = '';
+      let info = '';
+      
+      if (type === 'entity') {
+        const e = entity as Entity;
+        title = `${e.name} (${e.species})`;
+        info = `HP: ${e.hp}/100 | 나이: ${e.age} | 파벌: ${e.factionId || '없음'}`;
+      } else if (type === 'animal') {
+        const a = entity as Animal;
+        title = `${a.name} (${a.species})`;
+        info = `HP: ${a.hp}/100 | 공포: ${(a.fear * 100).toFixed(0)}% | 크기: ${(a.size * 100).toFixed(0)}%`;
+      } else if (type === 'plant') {
+        const p = entity as Plant;
+        title = `${p.name} (${p.species})`;
+        info = `성장: ${(p.growth * 100).toFixed(0)}% | HP: ${p.hp}/${p.maxHp} | 성숙: ${p.isMature ? '예' : '아니오'}`;
+      }
+      
+      ctx.fillText(title, bubbleX + 10, bubbleY + 10);
+      ctx.fillText(info, bubbleX + 10, bubbleY + 30);
+    }
+
+  }, [worldState, mapView, clickedEntity]);
 
   // 마우스 이벤트 핸들러
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -330,6 +354,65 @@ const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState, bubbleFilters }) 
 
   const handleMouseUp = () => {
     setIsDragging(false);
+  };
+
+  // 클릭 이벤트 핸들러
+  const handleClick = (e: React.MouseEvent) => {
+    if (isDragging) return; // 드래그 중이면 클릭 무시
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left - mapView.x) / mapView.scale;
+    const y = (e.clientY - rect.top - mapView.y) / mapView.scale;
+
+    // 클릭 범위 (5픽셀 반경)
+    const clickRadius = 5;
+
+    // 엔티티 검사
+    for (const entity of worldState.entities) {
+      const distance = Math.sqrt((x - entity.pos.x) ** 2 + (y - entity.pos.y) ** 2);
+      if (distance <= clickRadius) {
+        setClickedEntity({
+          entity,
+          type: 'entity',
+          position: { x: e.clientX, y: e.clientY }
+        });
+        return;
+      }
+    }
+
+    // 동물 검사
+    for (const animal of worldState.animals) {
+      if (animal.hp <= 0) continue;
+      const distance = Math.sqrt((x - animal.pos.x) ** 2 + (y - animal.pos.y) ** 2);
+      if (distance <= clickRadius) {
+        setClickedEntity({
+          entity: animal,
+          type: 'animal',
+          position: { x: e.clientX, y: e.clientY }
+        });
+        return;
+      }
+    }
+
+    // 식물 검사
+    for (const plant of worldState.plants) {
+      if (plant.isDead) continue;
+      const distance = Math.sqrt((x - plant.pos.x) ** 2 + (y - plant.pos.y) ** 2);
+      if (distance <= clickRadius) {
+        setClickedEntity({
+          entity: plant,
+          type: 'plant',
+          position: { x: e.clientX, y: e.clientY }
+        });
+        return;
+      }
+    }
+
+    // 아무것도 클릭하지 않았으면 말풍선 제거
+    setClickedEntity(null);
   };
 
 
@@ -380,6 +463,7 @@ const CanvasLayer: React.FC<CanvasLayerProps> = ({ worldState, bubbleFilters }) 
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onClick={handleClick}
         style={{
           position: 'absolute',
           top: 0,

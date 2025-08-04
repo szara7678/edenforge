@@ -13,7 +13,7 @@ export type Knowledge = Record<KnowledgeId, number>; // 값 0‒1 (숙련·정�
 
 /** 로그 시스템 */
 export type LogLevel = 'info' | 'warning' | 'error' | 'success';
-export type LogCategory = 'entity' | 'material' | 'combat' | 'research' | 'system' | 'genetics' | 'learning' | 'emotion' | 'faction' | 'ecosystem';
+export type LogCategory = 'entity' | 'material' | 'combat' | 'research' | 'system' | 'genetics' | 'learning' | 'emotion' | 'faction' | 'ecosystem' | 'hunting';
 
 export interface GameLog {
   id: string;

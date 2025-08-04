@@ -150,6 +150,16 @@ export class FactionSystem {
     return true;
   }
 
+  // 사망한 멤버 제거
+  private removeDeadMembers(faction: Faction): void {
+    const deadMembers = faction.members.filter(member => member.hp <= 0);
+    
+    for (const deadMember of deadMembers) {
+      this.removeMemberFromFaction(faction.id, deadMember);
+      this.logger.warning('faction', `${deadMember.name}이(가) 사망하여 ${faction.name}에서 제거되었습니다.`, deadMember.id, deadMember.name, { factionId: faction.id });
+    }
+  }
+
   // 파벌 관계 설정
   setFactionRelation(fromId: string, toId: string, value: number, reason: string): void {
     const relationKey = `${fromId}_${toId}`;
@@ -239,8 +249,11 @@ export class FactionSystem {
       return;
     }
 
-    // 전투 라운드
+    // 전투 라운드 - 엔티티의 전투 스킬과 스탯에 따라 전투력 계산
     const rounds = Math.min(3, Math.min(attackerMembers.length, defenderMembers.length));
+    
+    let attackerWins = 0;
+    let defenderWins = 0;
     
     for (let i = 0; i < rounds; i++) {
       const attacker = this.rng.pick(attackerMembers);
@@ -248,9 +261,29 @@ export class FactionSystem {
 
       if (attacker.hp <= 0 || defender.hp <= 0) continue;
 
-      const result = this.combatSystem.executeCombat(attacker, defender);
-      if (result) {
-        this.combatSystem.handleCombatAftermath(result);
+      // 엔티티의 전투 스킬과 스탯을 고려한 전투력 계산
+      const attackerPower = attacker.skills.combat + attacker.stats.str * 0.5 + attacker.stats.agi * 0.3;
+      const defenderPower = defender.skills.combat + defender.stats.str * 0.5 + defender.stats.agi * 0.3;
+      
+      // 전투력 차이에 따른 승률 계산
+      const powerDiff = attackerPower - defenderPower;
+      const winChance = 0.5 + (powerDiff / 200); // 전투력 차이에 따른 승률 조정
+      const finalWinChance = Math.max(0.1, Math.min(0.9, winChance));
+      
+      if (this.rng.bool(finalWinChance)) {
+        // 공격자 승리
+        attackerWins++;
+        // 방어자에게 데미지 (증가)
+        defender.hp = Math.max(0, defender.hp - Math.floor(attackerPower / 5));
+        // 공격자 스킬 향상
+        attacker.skills.combat = Math.min(100, attacker.skills.combat + 1);
+      } else {
+        // 방어자 승리
+        defenderWins++;
+        // 공격자에게 데미지 (증가)
+        attacker.hp = Math.max(0, attacker.hp - Math.floor(defenderPower / 5));
+        // 방어자 스킬 향상
+        defender.skills.combat = Math.min(100, defender.skills.combat + 1);
       }
     }
 
@@ -258,27 +291,30 @@ export class FactionSystem {
     const attackerCasualties = attackerMembers.filter(m => m.hp <= 0).length;
     const defenderCasualties = defenderMembers.filter(m => m.hp <= 0).length;
 
-    if (defenderCasualties > attackerCasualties) {
-      // 공격자 승리
-      this.setFactionRelation(attackerFaction.id, defenderFaction.id, -70, '전투 승리');
-      this.logger.success('faction', `${attackerFaction.name}이(가) ${defenderFaction.name}을(를) 물리쳤습니다!`, '', '', { 
-        attacker: attackerFaction.name, 
-        defender: defenderFaction.name,
-        casualties: { attacker: attackerCasualties, defender: defenderCasualties }
-      });
-    } else if (attackerCasualties > defenderCasualties) {
+    if (defenderWins > attackerWins || defenderCasualties < attackerCasualties) {
       // 방어자 승리
       this.setFactionRelation(attackerFaction.id, defenderFaction.id, -60, '전투 패배');
       this.logger.success('faction', `${defenderFaction.name}이(가) ${attackerFaction.name}의 공격을 막아냈습니다!`, '', '', { 
         attacker: attackerFaction.name, 
         defender: defenderFaction.name,
-        casualties: { attacker: attackerCasualties, defender: defenderCasualties }
+        casualties: { attacker: attackerCasualties, defender: defenderCasualties },
+        wins: { attacker: attackerWins, defender: defenderWins }
+      });
+    } else if (attackerWins > defenderWins || attackerCasualties < defenderCasualties) {
+      // 공격자 승리
+      this.setFactionRelation(attackerFaction.id, defenderFaction.id, -70, '전투 승리');
+      this.logger.success('faction', `${attackerFaction.name}이(가) ${defenderFaction.name}을(를) 물리쳤습니다!`, '', '', { 
+        attacker: attackerFaction.name, 
+        defender: defenderFaction.name,
+        casualties: { attacker: attackerCasualties, defender: defenderCasualties },
+        wins: { attacker: attackerWins, defender: defenderWins }
       });
     } else {
       // 무승부
       this.setFactionRelation(attackerFaction.id, defenderFaction.id, -40, '전투 무승부');
       this.logger.info('faction', `${attackerFaction.name}과(와) ${defenderFaction.name}의 전투가 무승부로 끝났습니다.`, '', '', { 
-        casualties: { attacker: attackerCasualties, defender: defenderCasualties }
+        casualties: { attacker: attackerCasualties, defender: defenderCasualties },
+        wins: { attacker: attackerWins, defender: defenderWins }
       });
     }
   }
@@ -292,6 +328,9 @@ export class FactionSystem {
   // 파벌 업데이트
   updateFactions(world: any): void {
     for (const faction of this.factions.values()) {
+      // 사망한 멤버 제거
+      this.removeDeadMembers(faction);
+      
       this.updateFactionStats(faction);
       this.updateFactionTerritory(faction);
       this.updateFactionRelations(faction);
@@ -307,43 +346,81 @@ export class FactionSystem {
 
   // 파벌 통계 업데이트
   private updateFactionStats(faction: Faction): void {
-    const members = faction.members.filter(m => m.hp > 0);
+    // 생존한 멤버만 필터링
+    const aliveMembers = faction.members.filter(m => m.hp > 0);
     
-    // 인구 통계
-    faction.stats.population = members.length;
+    // 인구 통계 - 생존한 멤버만 계산
+    faction.stats.population = aliveMembers.length;
     
     // 멤버가 없으면 모든 통계를 0으로 설정
-    if (members.length === 0) {
+    if (aliveMembers.length === 0) {
       faction.stats.military = 0;
       faction.stats.economy = 0;
       faction.stats.technology = 0;
       return;
     }
     
-    // 군사력 계산
-    const totalCombatSkill = members.reduce((sum, m) => sum + m.skills.combat, 0);
-    const totalWeapons = members.reduce((sum, m) => {
+    // 엔티티 스킬에 따른 자원 생산
+    this.updateFactionResources(faction, aliveMembers);
+    
+    // 군사력 계산 - 생존한 멤버만
+    const totalCombatSkill = aliveMembers.reduce((sum, m) => sum + m.skills.combat, 0);
+    const totalWeapons = aliveMembers.reduce((sum, m) => {
       return sum + (m.inventory.items['무기'] || 0) + (m.inventory.items['도구'] || 0);
     }, 0);
-    faction.stats.military = Math.floor((totalCombatSkill + totalWeapons * 10) / members.length);
+    faction.stats.military = Math.floor((totalCombatSkill + totalWeapons * 10) / aliveMembers.length);
     
-    // 경제력 계산
+    // 경제력 계산 - 자원과 스킬 기반
     const totalResources = Object.values(faction.resources).reduce((sum, val) => sum + val, 0);
-    faction.stats.economy = Math.floor(totalResources / 10);
+    const totalTradeSkill = aliveMembers.reduce((sum, m) => sum + (m.skills.trade || 0), 0);
+    faction.stats.economy = Math.floor((totalResources + totalTradeSkill * 2) / 10);
     
-    // 기술력 계산
-    const totalResearchSkill = members.reduce((sum, m) => sum + (m.skills.analyze || 0), 0);
-    faction.stats.technology = Math.floor(totalResearchSkill / members.length);
+    // 기술력 계산 - 생존한 멤버만
+    const totalResearchSkill = aliveMembers.reduce((sum, m) => sum + (m.skills.analyze || 0), 0);
+    faction.stats.technology = Math.floor(totalResearchSkill / aliveMembers.length);
+  }
+
+  // 파벌 자원 업데이트 - 엔티티 스킬 기반
+  private updateFactionResources(faction: Faction, aliveMembers: Entity[]): void {
+    // 수집 스킬에 따른 식량 생산
+    const totalGatherSkill = aliveMembers.reduce((sum, m) => sum + m.skills.gather, 0);
+    const foodProduction = Math.floor(totalGatherSkill / aliveMembers.length);
+    faction.resources.food = Math.min(1000, faction.resources.food + foodProduction);
+    
+    // 제작 스킬에 따른 도구 생산
+    const totalCraftSkill = aliveMembers.reduce((sum, m) => sum + m.skills.craft, 0);
+    const toolProduction = Math.floor(totalCraftSkill / (aliveMembers.length * 10));
+    faction.resources.tools = Math.min(100, faction.resources.tools + toolProduction);
+    
+    // 건설 스킬에 따른 재료 소비 및 무기 생산
+    const totalBuildSkill = aliveMembers.reduce((sum, m) => sum + m.skills.build, 0);
+    if (faction.resources.materials >= 5 && totalBuildSkill > 30) {
+      const weaponProduction = Math.floor(totalBuildSkill / (aliveMembers.length * 20));
+      faction.resources.weapons = Math.min(50, faction.resources.weapons + weaponProduction);
+      faction.resources.materials = Math.max(0, faction.resources.materials - weaponProduction * 2);
+    }
+    
+    // 자원 소모 (인구에 따른)
+    const consumption = aliveMembers.length * 2;
+    faction.resources.food = Math.max(0, faction.resources.food - consumption);
   }
 
   // 파벌 영토 업데이트
   private updateFactionTerritory(faction: Faction): void {
-    const members = faction.members.filter(m => m.hp > 0);
-    if (members.length === 0) return;
+    const aliveMembers = faction.members.filter(m => m.hp > 0);
+    if (aliveMembers.length === 0) return;
 
     // 멤버들의 위치를 기반으로 영토 계산
-    const positions = members.map(m => m.pos);
+    const positions = aliveMembers.map(m => m.pos);
     faction.territory = positions;
+    
+    // 영토 크기에 따른 자원 보너스
+    const territorySize = positions.length;
+    if (territorySize > 5) {
+      // 큰 영토를 가진 파벌은 자원 보너스
+      faction.resources.food = Math.min(1000, faction.resources.food + territorySize);
+      faction.resources.materials = Math.min(500, faction.resources.materials + territorySize * 0.5);
+    }
   }
 
   // 파벌 관계 업데이트

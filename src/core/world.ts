@@ -9,6 +9,7 @@ import { GeneticsSystem } from './genetics';
 import { LearningSystem } from './learning';
 import { EcosystemSystem } from './ecosystem';
 import { EmotionSystem } from './emotion';
+import { parameterManager } from '../parameters';
 
 export class World {
   private state: WorldState;
@@ -69,6 +70,11 @@ export class World {
     };
   }
 
+  loadState(savedState: WorldState): void {
+    // 전체 상태를 저장된 상태로 복원
+    this.state = savedState;
+  }
+
   tick(): void {
     this.state.tick++;
     this.state.time += 100; // 100ms per tick
@@ -89,13 +95,7 @@ export class World {
       this.removeEntity(deadId);
     }
 
-    // 가끔 재료 조합 시도 (5% 확률)
-    if (this.rng.bool(0.05)) {
-      const newMaterial = this.materialSystem.attemptRandomCombination();
-      if (newMaterial) {
-        this.logger.info('material', `새로운 재료 "${newMaterial.name}"이(가) 발견되었습니다!`, newMaterial.id, newMaterial.name);
-      }
-    }
+    // 자동 재료 조합 제거 - 이제 엔티티의 연구를 통해서만 재료 발견
 
     // 파벌 시스템 업데이트
     this.factionSystem.updateFactions(this);
@@ -110,8 +110,8 @@ export class World {
     // 감정 시스템 업데이트
     this.emotionSystem.updateBubbles();
 
-    // 파벌 간 전투 시도 (1% 확률)
-    if (this.rng.bool(0.01)) {
+    // 파벌 간 전투 시도 (5% 확률로 증가)
+    if (this.rng.bool(0.05)) {
       const warResult = this.attemptFactionWar();
       if (warResult) {
         this.logger.info('faction', `파벌 전쟁이 발생했습니다: ${warResult}`, '', '');
@@ -123,13 +123,13 @@ export class World {
       this.attemptTeaching();
     }
 
-    // 동물 생성 시도 (0.3% 확률)
-    if (this.rng.bool(0.003)) {
+    // 동물 생성 시도 (확률 대폭 증가)
+    if (this.rng.bool(0.05)) { // 1% → 5%로 증가
       this.attemptAnimalSpawn();
     }
 
-    // 식물 생성 시도 (0.5% 확률)
-    if (this.rng.bool(0.005)) {
+    // 식물 생성 시도 (확률 증가)
+    if (this.rng.bool(0.03)) { // 0.5% → 3%로 증가
       this.attemptPlantSpawn();
     }
 
@@ -153,25 +153,36 @@ export class World {
 
   // 엔티티 생성
   spawnEntity(species: Entity['species'], pos: Vec2): Entity {
+    // 파라미터에서 기본값 가져오기
+    const initialHp = parameterManager.getParameter('entity', 'initialHp');
+    const initialStamina = parameterManager.getParameter('entity', 'initialStamina');
+    const initialHunger = parameterManager.getParameter('entity', 'initialHunger');
+    const initialMorale = parameterManager.getParameter('entity', 'initialMorale');
+    const initialInventoryCapacity = parameterManager.getParameter('entity', 'initialInventoryCapacity');
+    const minStat = parameterManager.getParameter('entity', 'minStat');
+    const maxStat = parameterManager.getParameter('entity', 'maxStat');
+    const minSkill = parameterManager.getParameter('entity', 'minSkill');
+    const maxSkill = parameterManager.getParameter('entity', 'maxSkill');
+    
     const entity: Entity = {
       id: uuid(),
       name: this.nameGenerator.generateSpeciesName(species),
       species,
       stats: {
-        str: this.rng.range(20, 80),
-        agi: this.rng.range(20, 80),
-        end: this.rng.range(20, 80),
-        int: this.rng.range(20, 80),
-        per: this.rng.range(20, 80),
-        cha: this.rng.range(20, 80)
+        str: this.rng.range(minStat, maxStat),
+        agi: this.rng.range(minStat, maxStat),
+        end: this.rng.range(minStat, maxStat),
+        int: this.rng.range(minStat, maxStat),
+        per: this.rng.range(minStat, maxStat),
+        cha: this.rng.range(minStat, maxStat)
       },
       genes: {
-        survival: this.rng.range(0, 1),
-        reproduction: this.rng.range(0, 1),
-        curiosity: this.rng.range(0, 1),
-        social: this.rng.range(0, 1),
-        prestige: this.rng.range(0, 1),
-        fatigue: this.rng.range(0, 1)
+        survival: this.rng.range(0.2, 0.8),
+        reproduction: this.rng.range(0.1, 0.7),
+        curiosity: this.rng.range(0.1, 0.9), // 호기심 범위 확대
+        social: this.rng.range(0.1, 0.7),
+        prestige: this.rng.range(0.1, 0.8), // 명예욕 범위 확대
+        fatigue: this.rng.range(0.1, 0.7)
       },
       epi: {
         survival: 0,
@@ -182,25 +193,25 @@ export class World {
         fatigue: 0
       },
       skills: {
-        gather: this.rng.range(20, 40),
-        analyze: this.rng.range(20, 40),
-        craft: this.rng.range(20, 40),
-        build: this.rng.range(20, 40),
-        cook: this.rng.range(20, 40),
-        combat: this.rng.range(20, 40),
-        trade: this.rng.range(20, 40),
-        lead: this.rng.range(20, 40)
+        gather: this.rng.range(minSkill, maxSkill),
+        analyze: this.rng.range(minSkill, maxSkill), // 분석 스킬 범위 확대
+        craft: this.rng.range(minSkill, maxSkill), // 제작 스킬 범위 확대
+        build: this.rng.range(minSkill, maxSkill),
+        cook: this.rng.range(minSkill, maxSkill),
+        combat: this.rng.range(minSkill, maxSkill),
+        trade: this.rng.range(minSkill, maxSkill),
+        lead: this.rng.range(minSkill, maxSkill)
       },
       knowledge: {},
-      hp: 100,
-      stamina: 100,
-      hunger: 0,
-      morale: 50,
+      hp: initialHp,
+      stamina: initialStamina,
+      hunger: initialHunger,
+      morale: initialMorale,
       pos,
       age: 0,
       inventory: {
         items: {},
-        maxCapacity: 100
+        maxCapacity: initialInventoryCapacity
       }
     };
 
@@ -218,11 +229,16 @@ export class World {
     
     this.logger.success('entity', `${entity.name}이(가) 탄생했습니다. (종족: ${entity.species})`, entity.id, entity.name, creationInfo);
     
+    // 디버깅용 로그
+    console.log(`엔티티 생성됨: ${entity.name}, 현재 총 엔티티 수: ${this.state.entities.length}`);
+    
     return entity;
   }
 
   // 초기 월드 생성
   generatePrimitives(count: number): void {
+    console.log('generatePrimitives 호출됨, 요청된 엔티티 수:', count);
+    
     // 초기 엔티티들
     for (let i = 0; i < count; i++) {
       const pos: Vec2 = {
@@ -232,12 +248,55 @@ export class World {
       this.spawnEntity('human', pos);
     }
 
+    // 초기 동물들 생성 (먹잇감) - 파라미터 시스템 사용
+    const animalCountRatio = parameterManager.getParameter('world', 'initialAnimalCountRatio');
+    const animalCount = Math.max(20, Math.floor(count * animalCountRatio));
+    for (let i = 0; i < animalCount; i++) {
+      const pos: Vec2 = {
+        x: this.rng.range(0, 1000),
+        y: this.rng.range(0, 1000)
+      };
+      
+      // 약한 동물들 위주로 생성 (토끼 80%, 사슴 20%)
+      const species = this.rng.bool(0.8) ? 'rabbit' : 'deer';
+      this.createAnimal(species, pos);
+    }
+
+    // 초기 식물들 생성 (먹을거) - 파라미터 시스템 사용
+    const plantCountRatio = parameterManager.getParameter('world', 'initialPlantCountRatio');
+    const plantCount = Math.max(40, Math.floor(count * plantCountRatio));
+    for (let i = 0; i < plantCount; i++) {
+      const pos: Vec2 = {
+        x: this.rng.range(0, 1000),
+        y: this.rng.range(0, 1000)
+      };
+      
+      // 다양한 식물 생성 (풀 60%, 꽃 30%, 덤불 10%)
+      const rand = this.rng.range(0, 1);
+      let species: Plant['species'];
+      if (rand < 0.6) {
+        species = 'grass';
+      } else if (rand < 0.9) {
+        species = 'flower';
+      } else {
+        species = 'bush';
+      }
+      this.createPlant(species, pos);
+    }
+
     // 초기 파벌 생성
     this.createInitialFactions();
 
     // 초기 로그 추가
     this.logger.info('system', 'EdenForge 시뮬레이션이 시작되었습니다.');
     this.logger.info('system', `${count}명의 엔티티가 생성되었습니다.`);
+    this.logger.info('system', `${animalCount}마리의 동물이 생성되었습니다.`);
+    this.logger.info('system', `${plantCount}개의 식물이 생성되었습니다.`);
+    
+    // 실제 생성된 엔티티 수 확인
+    console.log('실제 생성된 엔티티 수:', this.state.entities.length);
+    console.log('실제 생성된 동물 수:', this.ecosystemSystem.getAnimals().length);
+    console.log('실제 생성된 식물 수:', this.ecosystemSystem.getPlants().length);
   }
 
   // 초기 파벌 생성
@@ -267,6 +326,11 @@ export class World {
   removeEntity(entityId: string): void {
     const entity = this.findEntity(entityId);
     if (entity) {
+      // 파벌에서 엔티티 제거
+      if (entity.factionId) {
+        this.factionSystem.removeMemberFromFaction(entity.factionId, entity);
+      }
+      
       // 엔티티 제거 로그
       const removalInfo = {
         species: entity.species,
@@ -374,8 +438,17 @@ export class World {
 
   // 동물 생성 시도
   private attemptAnimalSpawn(): void {
-    const animalSpecies: Animal['species'][] = ['wolf', 'deer', 'rabbit', 'bear', 'fox'];
-    const species = this.rng.pick(animalSpecies);
+    // 약한 동물들 위주로 생성 (토끼 60%, 사슴 30%, 기타 10%)
+    let species: Animal['species'];
+    const rand = this.rng.range(0, 1);
+    if (rand < 0.6) {
+      species = 'rabbit';
+    } else if (rand < 0.9) {
+      species = 'deer';
+    } else {
+      species = this.rng.pick(['wolf', 'bear', 'fox']);
+    }
+    
     const pos: Vec2 = {
       x: this.rng.range(0, 1000),
       y: this.rng.range(0, 1000)
@@ -386,8 +459,19 @@ export class World {
 
   // 식물 생성 시도
   private attemptPlantSpawn(): void {
-    const plantSpecies: Plant['species'][] = ['tree', 'grass', 'bush', 'flower', 'mushroom'];
-    const species = this.rng.pick(plantSpecies);
+    // 다양한 식물 생성 (풀 40%, 꽃 30%, 덤불 20%, 나무 10%)
+    let species: Plant['species'];
+    const rand = this.rng.range(0, 1);
+    if (rand < 0.4) {
+      species = 'grass';
+    } else if (rand < 0.7) {
+      species = 'flower';
+    } else if (rand < 0.9) {
+      species = 'bush';
+    } else {
+      species = 'tree';
+    }
+    
     const pos: Vec2 = {
       x: this.rng.range(0, 1000),
       y: this.rng.range(0, 1000)
